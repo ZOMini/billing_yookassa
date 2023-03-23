@@ -1,0 +1,31 @@
+@startuml as is
+
+skinparam componentStyle uml2
+actor Admin
+actor User
+database AuthDatabase
+database BillingDatabase
+component StripeOrYookassa
+component Auth
+component AdminPanel
+component Billing
+component WorkerSubscription
+component WorkerPaymentStatus
+
+
+User -down-> Auth
+Auth -right-> AuthDatabase
+User -right-> Billing
+' Billing -down-> AuthDatabase
+Billing -right-> BillingDatabase
+Billing <-up-> StripeOrYookassa
+Billing <-up-> StripeOrYookassa : статус после оплаты
+StripeOrYookassa .right.> WorkerPaymentStatus : ?
+WorkerPaymentStatus .down.> BillingDatabase : ?
+BillingDatabase <--> WorkerSubscription : Воркер добавляет/удаляет(покупка/возврат) роли в Auth модуле
+WorkerSubscription --> Auth : Он же мониторит окончение подписок(Auth отзывает JWT)
+Admin -left-> AdminPanel
+AdminPanel -left-> BillingDatabase
+
+
+@enduml
