@@ -138,3 +138,4 @@ src_dev/
 src_old/
 _src/
 Async_API_sprint_2.code-workspace
+*.pem
