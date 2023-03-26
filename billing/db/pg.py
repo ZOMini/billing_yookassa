@@ -1,32 +1,19 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine
-)
-from sqlalchemy.orm import (
-    Session,
-    declarative_base,
-    scoped_session,
-    sessionmaker
-)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from core.config import settings
 
-DATA_BASE = f'postgresql://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
+DATA_BASE = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
 
-engine = create_engine(DATA_BASE)
-db_session = scoped_session(sessionmaker(autocommit=False,
-                                         autoflush=False,
-                                         bind=engine))
+engine = create_async_engine(DATA_BASE)
 Base = declarative_base()
-Base.query = db_session.query_property()
+async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+async def init_db():
+    async with engine.begin() as conn:
+        # await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
-def init_db():
-    import models.models_pg
-    Base.metadata.create_all(bind=engine)
-
-
-def get_pg() -> scoped_session[Session]:
-    return db_session
+async def get_pg() -> AsyncSession:
+    async with async_session() as session:
+        yield session

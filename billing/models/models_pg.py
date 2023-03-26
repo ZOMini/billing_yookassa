@@ -1,17 +1,6 @@
-import datetime
 import enum
-import uuid
 
-from sqlalchemy import (
-    ARRAY,
-    Boolean,
-    Column,
-    DateTime,
-    Enum,
-    Float,
-    Integer,
-    String
-)
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -30,10 +19,9 @@ class PaymentPG(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
-    created_at = Column(DateTime(timezone=False), server_default=func.now())
-    expires_at = Column(DateTime(timezone=False),
-                        server_default=(func.now() + func.make_interval(0, 0, 0, 30)))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), server_default=(func.now() + func.make_interval(0, 0, 0, 30)))
     amount = Column(Float, nullable=False)
     payment = Column(String(127), nullable=False)
-    status = Column('value', Enum(StatusEnum), nullable=False)
+    status = Column(Enum(StatusEnum), nullable=False)
     role_granted = Column(Boolean, default=False, nullable=False)

@@ -6,7 +6,7 @@
     - sudo apt-get install python-pip
     - sudo pip install virtualenv
     - sudo 
-  - сертификат ssl
+  - сертификат ssl для HTTPS, браузеры будут ругаться(серты формальные, самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing
     - openssl req -x509 -nodes -days 3650 -newkey ec:<(openssl ecparam -name prime256v1) -keyout private_key.pem -out certificate.pem
     - gunicorn your-project.wsgi --keyfile private_key.pem --certfile certificate.pem
     - https://stackoverflow.com/questions/67110868/gunicorn-https-certificate-and-keys

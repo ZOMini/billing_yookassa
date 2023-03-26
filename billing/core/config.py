@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     redis_port: int = Field(...)
     redis_url: str = Field(...)
 
+    yoo_account_id: str = Field(...)
+    yoo_secret_key: str = Field(...)
+
     class Config:
         env_file = '.env'
         env_file_encoding = 'utf-8'
