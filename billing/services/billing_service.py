@@ -43,7 +43,7 @@ class BillingService:
             return await payment.json()
 
     async def create_pair_id(self, redis_id: uuid.UUID, yoo_id: uuid.UUID) -> bool:
-        result = await self.cache.set(redis_id, yoo_id)
+        result = await self.cache.set(redis_id, yoo_id, settings.redis_expire)
         return result
 
     async def get_yoo_id(self, redis_id: uuid.UUID) -> str | None:

@@ -1,11 +1,6 @@
 # Проектная работа: диплом - тема биллинг
 
 # Полезности
-  - WSL
-    - sudo apt-get update
-    - sudo apt-get install python-pip
-    - sudo pip install virtualenv
-    - sudo 
   - сертификат ssl для HTTPS, браузеры будут ругаться(серты формальные, самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing
     - openssl req -x509 -nodes -days 3650 -newkey ec:<(openssl ecparam -name prime256v1) -keyout private_key.pem -out certificate.pem
     - gunicorn your-project.wsgi --keyfile private_key.pem --certfile certificate.pem
@@ -15,3 +10,6 @@
     - psql -U app -h localhost -d billing_db
     - SELECT * FROM billing;
     - SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';
+  - redis:
+    - redis-cli
+    - keys *

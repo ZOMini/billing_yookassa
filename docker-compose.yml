@@ -14,7 +14,7 @@ services:
     #   - POSTGRES_HOST=notif_db
     # depends_on:
     #   - notif_db
-    # command: bash -c "python script.py && gunicorn admin_notif.wsgi --bind 0.0.0.0:443"
+    # command: bash -c "python script.py && gunicorn admin_notif.wsgi --bind 0.0.0.0:8000"
     ports:
       - '443:443' 
     networks:

@@ -23,7 +23,7 @@ async def get_buy_subscription(
         user_id: uuid.UUID,
         billing_service: BillingService = Depends(get_billing_service),
     ) -> RedirectResponse:
-    """GET HTTP метод. Создает платеж. Редиректит на yoomoney - для оплаты."""
+    """GET HTTP метод. Создает платеж. Редиректит на yoomoney - для оплаты. Скорее тестовая ручка, пока не понятно."""
     redis_id = str(uuid.uuid4())
     logging.error('INFO redis_id - %s', redis_id)
     # payment = Payment.create(redis_id)  # Через SDK - sync
@@ -32,6 +32,16 @@ async def get_buy_subscription(
     logging.error('INFO redis_result - %s', redis_result)
     return RedirectResponse(payment['confirmation']['confirmation_url'])
 
+@router.post('/buy_subscription/{user_id}')
+async def get_buy_subscription(
+        user_id: uuid.UUID,
+        billing_service: BillingService = Depends(get_billing_service),
+    ) -> str:
+    """POST ручка для сервисов. Создает платеж. Возвращает ссылку на подтверждение платежа."""
+    redis_id = str(uuid.uuid4())
+    payment = await billing_service.yoo_payment_create(user_id, redis_id)
+    await billing_service.create_pair_id(redis_id, payment['id'])
+    return payment['confirmation']['confirmation_url']
 
 @router.get('/buy_return/{redis_id}')
 async def get_buy_return(

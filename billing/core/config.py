@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     redis_host: str = Field(...)
     redis_port: int = Field(...)
     redis_url: str = Field(...)
+    redis_expire: int = Field(...)
 
     yoo_account_id: str = Field(...)
     yoo_secret_key: str = Field(...)
