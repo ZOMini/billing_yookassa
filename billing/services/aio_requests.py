@@ -22,6 +22,7 @@ class AioRequests:
             },
             "confirmation": {
                 "type": "redirect",
+                'enforce': True,
                 "return_url": f"https://localhost/yookassa/api/v1/buy_return/{redis_id}"
             },
             "capture": True,

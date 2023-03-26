@@ -32,7 +32,7 @@ class BillingService:
             headers=AioRequests.post_headers(redis_id)
         ) as payment:
             logging.error('INFO payment.json() %s', await payment.json())
-            return await payment.json()
+            return await payment.json(), payment.status
 
     async def yoo_payment_get(self, yoo_id: uuid.UUID | str) -> dict:
         async with self.aiohttp.get(
@@ -40,7 +40,7 @@ class BillingService:
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
         ) as payment:
             logging.error('INFO payment.json() %s', await payment.json())
-            return await payment.json()
+            return await payment.json(), payment.status
 
     async def create_pair_id(self, redis_id: uuid.UUID, yoo_id: uuid.UUID) -> bool:
         result = await self.cache.set(redis_id, yoo_id, settings.redis_expire)
