@@ -5,9 +5,10 @@ from core.config import settings
 
 DATA_BASE = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
 
-engine = create_async_engine(DATA_BASE)
+engine = create_async_engine(DATA_BASE, echo=True)
 Base = declarative_base()
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
 
 async def init_db():
     async with engine.begin() as conn:

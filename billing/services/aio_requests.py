@@ -8,14 +8,15 @@ class AioRequests:
         return headers
 
     @staticmethod
-    def post_body(user_id, redis_id):
+    def post_body(user_id, tarif_id, redis_id):
         body = {
             "amount": {
                 "value": "100.00",
                 "currency": "RUB"
             },
             "metadata": {
-                'user_id': str(user_id)
+                'user_id': str(user_id),
+                'tarif_id': str(tarif_id)
             },
             "payment_method_data": {
                 "type": "bank_card"

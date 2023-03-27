@@ -14,7 +14,7 @@ from db.abstract import CacheStorage
 from db.aiohttp import get_aiohttp
 from db.pg import get_pg
 from db.redis import get_redis
-from models.models_pg import PaymentPG
+from models.models_pg import PaymentPG, Tariff, UserStatus
 from services.aio_requests import AioRequests
 
 
@@ -24,11 +24,11 @@ class BillingService:
         self.pg = pg
         self.aiohttp = aiohttp
 
-    async def yoo_payment_create(self, user_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
+    async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
         async with self.aiohttp.post(
             'https://api.yookassa.ru/v3/payments',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
-            json=AioRequests.post_body(user_id, redis_id),
+            json=AioRequests.post_body(user_id, tarif_id, redis_id),
             headers=AioRequests.post_headers(redis_id)
         ) as payment:
             logging.error('INFO payment.json() %s', await payment.json())
@@ -50,18 +50,34 @@ class BillingService:
         yoo_id = await self.cache.get(str(redis_id))
         logging.error('INFO redis_yoo_id - %s', yoo_id)
         return yoo_id
+    
+    async def _get_tariff_obj(self, data: dict) -> Tariff:
+        return await self.pg.get(Tariff, data['metadata']['tarif_id'])
 
-    async def post_payment_pg(self, data: dict) -> None:
+    async def _get_or_post_userstatus_obj(self, data: dict) -> UserStatus:
+        u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])
+        if not u_obj:
+            self.pg.add(UserStatus(id=data['metadata']['user_id']))
+            u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])
+        return u_obj
+
+    async def _post_payment_obj(self, data: dict, t_obj: Tariff, u_obj: UserStatus) -> None:
         card_type = data['payment_method']['card']['card_type']
         last4 = data['payment_method']['card']['last4']
+        logging.error('11111111111111111111111111 - %s', u_obj)
         obj =  PaymentPG(
             id=data['id'],
-            user_id=data['metadata']['user_id'],
-            amount=float(data['amount']['value']),
             payment=f'{card_type} - **** **** **** {last4}',
-            status=data['status'])
+            status=data['status'],
+            tariff=t_obj,
+            userstatus=u_obj)
         logging.error('post_payment_pg - %s', obj.__dict__)
         self.pg.add(obj)
+
+    async def post_payment_pg(self, data: dict) -> None:
+        tariff = await self._get_tariff_obj(data)
+        userstatus = await self._get_or_post_userstatus_obj(data)
+        await self._post_payment_obj(data, tariff, userstatus)
         await self.pg.commit()
 
 
