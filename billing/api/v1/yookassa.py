@@ -55,11 +55,18 @@ async def get_buy_return(
     ) -> HTMLResponse:
     """buy_return."""
     yoo_id = await billing_service.get_yoo_id(redis_id)
-    logging.error('INFO redis_value - %s', yoo_id)
-    # payment = Payment.find_one(yoo_id)  # Через SDK - sync
     payment, status = await billing_service.yoo_payment_get(yoo_id)
     if status not in VALID_HTTP_STATUS:
         return HTTPException(status, payment['code'])
     await billing_service.post_payment_pg(payment)
     template = html_buy_return(payment['metadata']['user_id'], payment['status'], payment['created_at'])
     return HTMLResponse(template, 200)
+
+@router.get('/refunds_subscription/{user_id}/{summ}')
+async def get_buy_subscription(
+        user_id: uuid.UUID,
+        summ: int,
+        billing_service: BillingService = Depends(get_billing_service),
+    ) -> RedirectResponse:
+    """GET метод для браузера. Создает платеж. Редиректит на yoomoney - для оплаты. Скорее тестовая ручка, пока не понятно."""
+    await billing_service.yoo_refunds(user_id, summ)

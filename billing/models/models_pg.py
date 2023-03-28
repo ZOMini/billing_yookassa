@@ -35,9 +35,12 @@ class UserStatus(Base):
 
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, unique=True, nullable=False)
     subscriber = Column(Boolean, default=False)
-    expires_at = Column(DateTime(timezone=True), default=None, nullable=True)
+    expires_at = Column(DateTime(timezone=False), default=None, nullable=True)
     actual = Column(Boolean, default=False)
     payments = Relationship("PaymentPG", back_populates="userstatus")
+
+    def __repr__(self) -> str:
+        return str(self.id)
 
 
 class Tariff(Base):
@@ -50,6 +53,8 @@ class Tariff(Base):
     description = Column(String(127), nullable=False)
     payments = Relationship("PaymentPG", back_populates="tariff")
 
+    def __repr__(self) -> str:
+        return str(self.id)
 
 class PaymentPG(Base):
     __tablename__ = 'payment'
@@ -57,14 +62,18 @@ class PaymentPG(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
     # user_id = Column(UUID(as_uuid=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
     # expires_at = Column(DateTime(timezone=True), server_default=(func.now() + func.make_interval(0, 0, 0, 30)))
     payment = Column(String(127), nullable=False)
+    income = Column(Float, nullable=False)
     status = Column(Enum(StatusEnum), nullable=False)
     tariff_id = Column(UUID(as_uuid=True), ForeignKey("tariff.id"))
     tariff = Relationship("Tariff", back_populates="payments")
     userstatus_id = Column(UUID(as_uuid=True), ForeignKey("userstatus.id"))
     userstatus = Relationship("UserStatus", back_populates="payments")
+
+    def __repr__(self) -> str:
+        return str(self.id)
 
 
 async def test_data():

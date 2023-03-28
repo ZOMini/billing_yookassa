@@ -1,11 +1,15 @@
+import datetime
 import json
 import logging
+import math
 import uuid
 from functools import lru_cache
 
 from aiohttp import BasicAuth, ClientResponse, ClientSession
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import func, select
 from yookassa import Payment
 from yookassa.domain.response import PaymentResponse
 
@@ -23,6 +27,51 @@ class BillingService:
         self.cache = cache
         self.pg = pg
         self.aiohttp = aiohttp
+
+    async def _refund_process(self, summ: int, payment: PaymentPG, refund_days: int):
+        """Метод непосредственно производит возврат. Если после возврата подписка исчерпалась,
+        меняет флаг для воркера. Хотя воркер и так со временем отзовет ключи, но с флагом быстрее."""
+        async with self.aiohttp.post(
+            'https://api.yookassa.ru/v3/refunds',
+            auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
+            headers={'Idempotence-Key': str(uuid.uuid4())},
+            json=AioRequests.refund_body(payment, summ)
+        ) as result:
+            response_obj = await result.json()
+            logging.error('zzzzzzzzzzzzzzzzzzzzz max_refund %s', response_obj)
+            try:
+                if response_obj['status'] != 'succeeded':
+                    raise HTTPException(400, response_obj['status'])
+            except KeyError:
+                raise HTTPException(400, response_obj['description'])
+        payment.userstatus.expires_at = payment.userstatus.expires_at - datetime.timedelta(days=refund_days)
+        if payment.userstatus.expires_at.timestamp() < datetime.datetime.now().timestamp():
+            payment.userstatus.actual = False
+
+    async def _calculation_refund(self, summ: int, payment: PaymentPG):
+        """Метод счетает количество дней заявленных для возврата."""
+        days_remained = (payment.userstatus.expires_at - datetime.datetime.now()).days
+        if days_remained <= 0:
+            raise HTTPException(400, 'Возврат не возможен. Подписка не активна.')
+        price_day = payment.tariff.price / payment.tariff.days.days
+        max_refund = days_remained * price_day
+        refund_days = math.ceil(summ / price_day)
+        logging.error('zzzzzzzzzzzzzzzzzzzzz max_refund %s --- %s', max_refund, summ)
+        if max_refund < summ:
+            raise HTTPException(400, 'Возврат не возможен. Сумма запрошенная на возврат, больше максимально возможной.')
+        return refund_days
+
+    async def _get_payment_by_userid(self, user_id: uuid.UUID) -> PaymentPG:
+        scalar = await self.pg.scalars(select(PaymentPG).options(joinedload(PaymentPG.tariff), joinedload(PaymentPG.userstatus)).filter(PaymentPG.userstatus_id == user_id).filter(PaymentPG.status == 'succeeded').order_by(PaymentPG.created_at.desc()).limit(1))
+        payment = scalar.first()
+        return payment
+        
+    async def yoo_refunds(self, user_id: uuid.UUID, summ: int):
+        payment = await self._get_payment_by_userid(user_id)
+        refund_days = await self._calculation_refund(summ, payment)
+        await self._refund_process(summ, payment, refund_days)
+        await self.pg.commit()
+        logging.error('aaaaaaaaaaaaaaa True')
 
     async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
         async with self.aiohttp.post(
@@ -54,11 +103,23 @@ class BillingService:
     async def _get_tariff_obj(self, data: dict) -> Tariff:
         return await self.pg.get(Tariff, data['metadata']['tarif_id'])
 
-    async def _get_or_post_userstatus_obj(self, data: dict) -> UserStatus:
+    async def _get_or_post_userstatus_obj(self, data: dict, tarif: Tariff) -> UserStatus:
+        """Метод из PG достает данные по подписке у пользователя.
+        Если нет данных - создает. Если статус платежа succeeded продливает/возобновляет/активирует подписку.
+        Ставит булевый флаг для воркера, что бы проверить подписку в Auth модуле.
+        Возвращает обновленный объект UserStatus."""
         u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])
+        status = True if data['status'] == 'succeeded' else False
         if not u_obj:
             self.pg.add(UserStatus(id=data['metadata']['user_id']))
             u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])
+        u_obj.expires_at = datetime.datetime.now() if not u_obj.expires_at else u_obj.expires_at
+        if status and u_obj.expires_at.timestamp() > datetime.datetime.now().timestamp():
+            u_obj.expires_at = u_obj.expires_at + tarif.days
+        elif status:
+            u_obj.expires_at = datetime.datetime.now() + tarif.days
+            u_obj.actual = False
+        # await self.pg.commit()
         return u_obj
 
     async def _post_payment_obj(self, data: dict, t_obj: Tariff, u_obj: UserStatus) -> None:
@@ -68,6 +129,7 @@ class BillingService:
         obj =  PaymentPG(
             id=data['id'],
             payment=f'{card_type} - **** **** **** {last4}',
+            income=float(data['income_amount']['value']),
             status=data['status'],
             tariff=t_obj,
             userstatus=u_obj)
@@ -76,9 +138,11 @@ class BillingService:
 
     async def post_payment_pg(self, data: dict) -> None:
         tariff = await self._get_tariff_obj(data)
-        userstatus = await self._get_or_post_userstatus_obj(data)
+        userstatus = await self._get_or_post_userstatus_obj(data, tariff)
         await self._post_payment_obj(data, tariff, userstatus)
         await self.pg.commit()
+
+
 
 
 @lru_cache()
