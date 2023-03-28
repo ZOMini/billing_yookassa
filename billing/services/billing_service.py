@@ -143,8 +143,6 @@ class BillingService:
         await self.pg.commit()
 
 
-
-
 @lru_cache()
 def get_billing_service(
     cache: CacheStorage = Depends(get_redis),
