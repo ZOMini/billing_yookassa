@@ -1,0 +1,199 @@
+version: "3.2"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+        - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+        - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    networks:
+        - rabbitmq
+
+  notif_db:
+    image: postgres:13-alpine
+    container_name: notif_db
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    volumes:
+      - notif_db_data:/var/lib/postgresql/data/
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - rabbitmq
+
+  rabbitworker:
+    build: 
+      context: ./workers
+      dockerfile: Dockerfile_rabbit
+    container_name: rabbitworker
+    env_file:
+      - ./.env
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    depends_on:
+      - rabbitmq
+      - notif_db
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  enrichworker:
+    build: 
+      context: ./workers
+      dockerfile: Dockerfile_enrich
+    container_name: enrichworker
+    env_file:
+      - ./.env
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+      - AUTH_URL=http://flask_auth:5000/auth/api/v1/get_user_by_id
+    depends_on:
+      - rabbitmq
+      - notif_db
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  senderworker:
+    build: 
+      context: ./workers
+      dockerfile: Dockerfile_sender
+    container_name: senderworker
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    depends_on:
+      - notif_db
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  notifadmin:
+    build: 
+      context: ./notif_admin_panel
+      dockerfile: Dockerfile
+    container_name: notifadmin
+    volumes:
+      - static_volume:/app/static
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    depends_on:
+      - notif_db
+    command: bash -c "python script.py && gunicorn admin_notif.wsgi --bind 0.0.0.0:8082"
+    ports:
+      - '8082:8082' 
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  auth_db:
+    image: postgres:13-alpine
+    container_name: auth_db
+    env_file: 
+      - ./.env
+    environment:
+      - POSTGRES_DB=auth_db
+      - POSTGRES_HOST=auth_db
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data/
+    restart: always
+    networks:
+      - rabbitmq
+
+  redis_auth:
+    image: redis:alpine
+    container_name: redis_auth
+    env_file: 
+      - ./.env
+    volumes:
+      - redis_data:/data
+    restart: always
+    networks:
+      - rabbitmq
+
+  flask_auth:
+    build: ./flask_auth
+    container_name: flask_auth
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/flask_auth
+      - RABBIT_HOST=rabbitmq
+      - POSTGRES_DB=auth_db
+      - POSTGRES_HOST=auth_db
+      - DB_DOCKER_HOST=auth_db
+    working_dir: /flask_auth
+    depends_on:
+      - redis_auth
+      - auth_db
+    ports:
+      - "5000:5000"
+    restart: always
+    networks:
+      - rabbitmq
+
+  # ugc_api:
+  #   build: ./ugc_api
+  #   container_name: ugc_api
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - RABBIT_HOST=rabbitmq
+  #     - MONGO_URL=mongodb://mongodb:27017
+  #   depends_on:
+  #     - mongodb
+  #   ports:
+  #     - '8000:8000'
+  #   networks:
+  #     - rabbitmq
+
+  # mongodb:
+  #   container_name: mongodb
+  #   image: mongo
+  #   ports:
+  #     - 27017:27017
+  #   volumes:
+  #     - mo_data:/mo_data
+  #   networks:
+  #     - rabbitmq
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: always
+    logging:
+      driver: 'none'
+    ports:
+      - 1025:1025
+      - 8025:8025
+    networks:
+      - rabbitmq
+
+volumes:
+  notif_db_data:
+  auth_db_data:
+  redis_data:
+  mo_data:
+  static_volume:
+
+networks:
+  rabbitmq:
+    driver: bridge

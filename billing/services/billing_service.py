@@ -29,8 +29,7 @@ class BillingService:
         self.aiohttp = aiohttp
 
     async def _refund_process(self, summ: int, payment: PaymentPG, refund_days: int):
-        """Метод непосредственно производит возврат. Если после возврата подписка исчерпалась,
-        меняет флаг для воркера. Хотя воркер и так со временем отзовет ключи, но с флагом быстрее."""
+        """Метод непосредственно производит возврат."""
         async with self.aiohttp.post(
             'https://api.yookassa.ru/v3/refunds',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
@@ -45,15 +44,15 @@ class BillingService:
             except KeyError:
                 raise HTTPException(400, response_obj['description'])
         payment.userstatus.expires_at = payment.userstatus.expires_at - datetime.timedelta(days=refund_days)
-        if payment.userstatus.expires_at.timestamp() < datetime.datetime.now().timestamp():
-            payment.userstatus.actual = False
+        # if payment.userstatus.expires_at.timestamp() < datetime.datetime.now().timestamp():
+        #     payment.userstatus.actual = False
 
     async def _calculation_refund(self, summ: int, payment: PaymentPG):
         """Метод счетает количество дней заявленных для возврата."""
         days_remained = (payment.userstatus.expires_at - datetime.datetime.now()).days
         if days_remained <= 0:
             raise HTTPException(400, 'Возврат не возможен. Подписка не активна.')
-        price_day = payment.tariff.price / payment.tariff.days.days
+        price_day = payment.income / payment.tariff.days.days
         max_refund = days_remained * price_day
         refund_days = math.ceil(summ / price_day)
         logging.error('zzzzzzzzzzzzzzzzzzzzz max_refund %s --- %s', max_refund, summ)
@@ -62,8 +61,11 @@ class BillingService:
         return refund_days
 
     async def _get_payment_by_userid(self, user_id: uuid.UUID) -> PaymentPG:
+        """Метод возвращает последнюю succeeded подписку. Либо 400-тит"""
         scalar = await self.pg.scalars(select(PaymentPG).options(joinedload(PaymentPG.tariff), joinedload(PaymentPG.userstatus)).filter(PaymentPG.userstatus_id == user_id).filter(PaymentPG.status == 'succeeded').order_by(PaymentPG.created_at.desc()).limit(1))
         payment = scalar.first()
+        if not payment:
+            raise HTTPException(400, 'Возврат не возможен. У пользователя нет оплаченных подписок.')
         return payment
         
     async def yoo_refunds(self, user_id: uuid.UUID, summ: int):
@@ -92,10 +94,15 @@ class BillingService:
             return await payment.json(), payment.status
 
     async def create_pair_id(self, redis_id: uuid.UUID, yoo_id: uuid.UUID) -> bool:
+        """Создаем пару id. Ключ redis_id, значение yoo_payment_id(id платежа в yookasse).
+        Это необходимо т.к. до создания платежа в yookasse мы не знаем payment_id, передать свой не возможно,
+        а при создании платежа уже нужно передать return_url(в котором квари параметр какой либо id,
+        для идентификаци, кого/какой платеж, вернуло после платежа)"""
         result = await self.cache.set(redis_id, yoo_id, settings.redis_expire)
         return result
 
     async def get_yoo_id(self, redis_id: uuid.UUID) -> str | None:
+        """А тут мы получаем по radis_id(из квари параметра return_url) - payment_id yookass'ы."""
         yoo_id = await self.cache.get(str(redis_id))
         logging.error('INFO redis_yoo_id - %s', yoo_id)
         return yoo_id

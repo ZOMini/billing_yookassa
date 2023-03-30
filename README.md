@@ -1,5 +1,8 @@
 # Проектная работа: диплом - тема биллинг
 
+# Запуск
+  - docker-compose -f docker-compose-bill.yml -f docker-compose-notif.yml up --build
+
 # Полезности
   - сертификат ssl для HTTPS, браузеры будут ругаться(серты самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing
     - openssl req -x509 -nodes -days 3650 -newkey ec:<(openssl ecparam -name prime256v1) -keyout private_key.pem -out certificate.pem

@@ -1,0 +1,112 @@
+{"users":[{
+    "name": "ugc_publisher",
+    "password": "qweqwe",
+    "tags": ""
+  }, {
+    "name": "auth_publisher",
+    "password": "qweqwe",
+    "tags": ""
+  }, {
+    "name": "admin",
+    "password": "12345678",
+    "tags": "administrator"
+  }, {
+    "name": "consumer",
+    "password": "qweqwe",
+    "tags": ""
+  }],
+  "vhosts": [{
+    "name": "/"
+  }],
+"permissions":[{
+      "user":"ugc_publisher",
+      "vhost":"/",
+      "configure":".*",
+      "write":".*",
+      "read":".*"
+    }, {
+      "user":"auth_publisher",
+      "vhost":"/",
+      "configure":".*",
+      "write":".*",
+      "read":".*"
+    }, {
+      "user":"consumer",
+      "vhost":"/",
+      "configure":".*",
+      "write":".*",
+      "read":".*"
+    }, {
+      "user":"admin",
+      "vhost":"/",
+      "configure":".*",
+      "write":".*",
+      "read":".*"
+    }],
+"queues": [
+    {
+        "name": "instant_events",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+      {
+        "name": "ugc_events",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+    {
+        "name": "admin_panel_events",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    }
+],
+"exchanges": [
+    {
+        "name": "notifications",
+        "vhost": "/",
+        "type": "direct",
+        "durable": true,
+        "auto_delete": false,
+        "internal": false,
+        "arguments": {}
+    }
+],
+"bindings": [
+    {
+        "source": "notifications",
+        "vhost": "/",
+        "destination": "ugc_events",
+        "destination_type": "queue",
+        "routing_key": "ugc_events",
+        "arguments": {}
+    },
+    {
+        "source": "notifications",
+        "vhost": "/",
+        "destination": "instant_events",
+        "destination_type": "queue",
+        "routing_key": "instant_events",
+        "arguments": {}
+    },
+    {
+        "source": "notifications",
+        "vhost": "/",
+        "destination": "admin_panel_events",
+        "destination_type": "queue",
+        "routing_key": "admin_panel_events",
+        "arguments": {}
+    }
+  ]
+ }

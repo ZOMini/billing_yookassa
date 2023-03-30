@@ -1,0 +1,83 @@
+version: "3.2"
+services:
+  billing:
+    build: 
+      context: ./billing
+      dockerfile: Dockerfile_billing
+    container_name: billing
+    # volumes:
+    #   - static_volume:/app/static
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+      - REDIS_HOST=redis_bill
+      - REDIS_URL=redis://redis_bill:6379
+    depends_on:
+      - billing_db
+      - redis_bill
+    # command: bash -c "python script.py && gunicorn admin_notif.wsgi --bind 0.0.0.0:8000"
+    ports:
+      - '443:443' 
+    networks:
+      - billing_nw
+    restart: on-failure
+
+  billing_worker:
+    build: 
+      context: ./billing
+      dockerfile: Dockerfile_billing_worker
+    container_name: billing_worker
+    # volumes:
+    #   - static_volume:/app/static
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+    depends_on:
+      - billing_db
+      - billing
+    # command: bash -c "python script.py && gunicorn admin_notif.wsgi --bind 0.0.0.0:8000"
+    ports:
+      - '8088:8088' 
+    networks:
+      - billing_nw
+      - rabbitmq
+    restart: on-failure
+
+  redis_bill:
+    image: redis:alpine
+    container_name: redis_bill
+    env_file: 
+      - ./.env
+    volumes:
+      - redis_data:/redis/data
+    restart: always
+    networks:
+      - billing_nw
+
+  billing_db:
+    image: postgres:13-alpine
+    container_name: billing_db
+    env_file: 
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+    volumes:
+      - billing_db_data:/var/lib/postgresql/data/
+    restart: always
+    networks:
+      - billing_nw
+
+volumes:
+  redis_data:
+  billing_db_data:
+
+networks:
+  billing_nw:
+    driver: bridge
+  rabbitmq:
+    driver: bridge
