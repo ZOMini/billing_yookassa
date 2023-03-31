@@ -7,21 +7,35 @@ from http import HTTPStatus
 import aiohttp
 from aiohttp import ClientSession
 from sqlalchemy import and_
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine
+)
 from sqlalchemy.orm import joinedload, sessionmaker
 from sqlalchemy.sql import func, select
 
 from core.config import settings
-from db.pg import engine
+# from db.pg import engine
 from models.models_pg import PaymentPG, Tariff, UserStatus
 
 VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED, HTTPStatus.NO_CONTENT)
 
+# async def pg_conn():
+#     DATA_BASE = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
+#     engine = create_async_engine(DATA_BASE)
+#     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+#     async with async_session() as session:
+#         return session
+
+# async def ahttp_conn():
+#     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=35, loop=asyncio.get_event_loop())) as ahttp:
+#         return ahttp
 
 async def main_worker():
     DATA_BASE = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
     engine = create_async_engine(DATA_BASE)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
     async with async_session() as pg:
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=35, loop=asyncio.get_event_loop())) as ahttp:
             current_time = datetime.datetime.now(tz=None)

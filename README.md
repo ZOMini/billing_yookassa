@@ -1,5 +1,10 @@
 # Проектная работа: диплом - тема биллинг
 
+# Для проверки:
+  - https://github.com/ZOMini/graduate_work  - репозиторий
+  - https://github.com/ZOMini/graduate_work/invitations - приглашение
+  - группа 10 - Пирогов Виталий/Игорь Синякин(@ee2 @sinyakinmail - в пачке)
+
 # Запуск
   - docker-compose -f docker-compose-bill.yml -f docker-compose-notif.yml up --build
 

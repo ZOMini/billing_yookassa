@@ -184,8 +184,8 @@ def get_user_roles(user: str):
 
 
 @role.route('/user/roles/billing', methods=['POST', 'DELETE'])
-@jwt_required()
-@role_required('admin')
+# @jwt_required()
+# @role_required('admin')
 def add_role_for_user_billing():
     """
     ---

@@ -4,7 +4,6 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from template.buy_return import html_buy_return
 from yookassa import Configuration, Payment
 from yookassa.domain.models.confirmation.response.confirmation_redirect import (
     ConfirmationRedirect
@@ -12,6 +11,7 @@ from yookassa.domain.models.confirmation.response.confirmation_redirect import (
 from yookassa.domain.response import PaymentListResponse, PaymentResponse
 
 from services.billing_service import BillingService, get_billing_service
+from template.buy_return import html_buy_return
 
 # Configuration.account_id = '206307'
 # Configuration.secret_key = 'test_Z4fOU6TyaN-zLM742YzD2l8UeNGxdoFBTMj14bGWkHY'
@@ -31,6 +31,8 @@ async def get_buy_subscription(
     payment, status = await billing_service.yoo_payment_create(user_id, tarif_id, redis_id)
     if status not in (VALID_HTTP_STATUS):
         return HTTPException(status, payment['code'])
+    # так как пока не понятно в этом сервисе(callback) или это будет отделный воркер,
+    # сохранять id необработанных платежей(+redis id как ключ) буду в редисе.
     redis_result = await billing_service.create_pair_id(redis_id, payment['id'])
     logging.error('INFO redis_result - %s', redis_result)
     return RedirectResponse(payment['confirmation']['confirmation_url'])
