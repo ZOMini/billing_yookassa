@@ -72,3 +72,4 @@ async def get_buy_subscription(
     ) -> RedirectResponse:
     """GET метод для браузера. Создает платеж. Редиректит на yoomoney - для оплаты. Скорее тестовая ручка, пока не понятно."""
     await billing_service.yoo_refunds(user_id, summ)
+    return

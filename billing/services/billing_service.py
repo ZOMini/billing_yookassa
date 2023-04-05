@@ -76,10 +76,11 @@ class BillingService:
         logging.error('aaaaaaaaaaaaaaa True')
 
     async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
+        tarif = await self._get_tariff_obj(tarif_id)
         async with self.aiohttp.post(
             'https://api.yookassa.ru/v3/payments',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
-            json=AioRequests.post_body(user_id, tarif_id, redis_id),
+            json=AioRequests.post_body(tarif.price, user_id, tarif_id, redis_id),
             headers=AioRequests.post_headers(redis_id)
         ) as payment:
             logging.error('INFO payment.json() %s', await payment.json())
@@ -97,7 +98,8 @@ class BillingService:
         """Создаем пару id. Ключ redis_id, значение yoo_payment_id(id платежа в yookasse).
         Это необходимо т.к. до создания платежа в yookasse мы не знаем payment_id, передать свой не возможно,
         а при создании платежа уже нужно передать return_url(в котором квари параметр какой либо id,
-        для идентификаци, кого/какой платеж, вернуло после платежа)"""
+        для идентификации - кого/какой платеж, вернуло после платежа). 
+        Ну либо callback - но уже через редис решил, так гибче получается."""
         result = await self.cache.set(redis_id, yoo_id, settings.redis_expire)
         return result
 
@@ -106,9 +108,12 @@ class BillingService:
         yoo_id = await self.cache.get(str(redis_id))
         logging.error('INFO redis_yoo_id - %s', yoo_id)
         return yoo_id
-    
-    async def _get_tariff_obj(self, data: dict) -> Tariff:
-        return await self.pg.get(Tariff, data['metadata']['tarif_id'])
+
+    async def _get_tariff_obj(self, id: str | uuid.UUID) -> Tariff:
+        tariff = await self.pg.get(Tariff, id)
+        if not tariff:
+            raise HTTPException(404, 'Нет такого тарифа.')
+        return tariff
 
     async def _get_or_post_userstatus_obj(self, data: dict, tarif: Tariff) -> UserStatus:
         """Метод из PG достает данные по подписке у пользователя.
@@ -144,7 +149,7 @@ class BillingService:
         self.pg.add(obj)
 
     async def post_payment_pg(self, data: dict) -> None:
-        tariff = await self._get_tariff_obj(data)
+        tariff = await self._get_tariff_obj(data['metadata']['tarif_id'])
         userstatus = await self._get_or_post_userstatus_obj(data, tariff)
         await self._post_payment_obj(data, tariff, userstatus)
         await self.pg.commit()
