@@ -9,7 +9,7 @@ def html_buy_return(user_id: str, status: str, expired: datetime) -> str:
                 <title>Return page</title>
             </head>
             <body>
-                <h1>User %s - Status %s - Expired %s!</h1>
+                <h1>User %s - Status %s - Description %s!</h1>
             </body>
         </html>
         """ % (user_id, status, expired)

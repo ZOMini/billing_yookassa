@@ -4,17 +4,10 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from yookassa import Configuration, Payment
-from yookassa.domain.models.confirmation.response.confirmation_redirect import (
-    ConfirmationRedirect
-)
-from yookassa.domain.response import PaymentListResponse, PaymentResponse
 
 from services.billing_service import BillingService, get_billing_service
 from template.buy_return import html_buy_return
-
-# Configuration.account_id = '206307'
-# Configuration.secret_key = 'test_Z4fOU6TyaN-zLM742YzD2l8UeNGxdoFBTMj14bGWkHY'
+from template.refund import html_refund
 
 router = APIRouter()
 VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED)
@@ -37,14 +30,16 @@ async def get_buy_subscription(
     logging.error('INFO redis_result - %s', redis_result)
     return RedirectResponse(payment['confirmation']['confirmation_url'])
 
-@router.post('/buy_subscription/{user_id}')
+@router.post('/buy_subscription/{user_id}/{tarif_id}')
 async def get_buy_subscription(
         user_id: uuid.UUID,
+        tarif_id: uuid.UUID,
         billing_service: BillingService = Depends(get_billing_service),
     ) -> str:
-    """POST ручка для сервисов. Создает платеж. Возвращает ссылку на подтверждение платежа."""
+    """POST ручка для сервисов. Создает платеж. Возвращает ссылку на подтверждение платежа,
+    для фронта например, а фронт уже решает что с этой ссылкой делать."""
     redis_id = str(uuid.uuid4())
-    payment, status = await billing_service.yoo_payment_create(user_id, redis_id)
+    payment, status = await billing_service.yoo_payment_create(user_id, tarif_id, redis_id)
     if status not in (VALID_HTTP_STATUS):
         return HTTPException(status, payment['code'])
     await billing_service.create_pair_id(redis_id, payment['id'])
@@ -61,8 +56,8 @@ async def get_buy_return(
     if status not in VALID_HTTP_STATUS:
         return HTTPException(status, payment['code'])
     await billing_service.post_payment_pg(payment)
-    template = html_buy_return(payment['metadata']['user_id'], payment['status'], payment['created_at'])
-    return HTMLResponse(template, 200)
+    template = html_buy_return(payment['metadata']['user_id'], payment['status'], payment['description'])
+    return HTMLResponse(template, HTTPStatus.OK)
 
 @router.get('/refunds_subscription/{user_id}/{summ}')
 async def get_buy_subscription(
@@ -72,4 +67,5 @@ async def get_buy_subscription(
     ) -> RedirectResponse:
     """GET метод для браузера. Создает платеж. Редиректит на yoomoney - для оплаты. Скорее тестовая ручка, пока не понятно."""
     await billing_service.yoo_refunds(user_id, summ)
-    return
+    template = html_refund(user_id, summ)
+    return HTMLResponse(template, HTTPStatus.OK)

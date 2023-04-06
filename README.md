@@ -21,7 +21,7 @@
     - SELECT * FROM payment;
     - SELECT * FROM payment JOIN tarif ON payment.tarif_id=tarif.id;
     - SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';
-  - 
+  - auth_db:
     - psql -U app -h localhost -d auth_db
     - SELECT * FROM users;
     - SELECT * FROM roles;

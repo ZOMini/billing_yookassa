@@ -73,7 +73,7 @@ class BillingService:
         refund_days = await self._calculation_refund(summ, payment)
         await self._refund_process(summ, payment, refund_days)
         await self.pg.commit()
-        logging.error('aaaaaaaaaaaaaaa True')
+        logging.error('yoo_refunds - True')
 
     async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
         tarif = await self._get_tariff_obj(tarif_id)

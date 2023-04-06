@@ -10,7 +10,7 @@ component Auth
 component AdminPanel
 component Billing
 component WorkerSubscription
-component WorkerPaymentStatus
+component Notification
 
 
 User -down-> Auth
@@ -20,10 +20,9 @@ User -right-> Billing
 Billing -right-> BillingDatabase
 Billing <-up-> StripeOrYookassa
 Billing <-up-> StripeOrYookassa : статус после оплаты
-StripeOrYookassa .right.> WorkerPaymentStatus : ?
-WorkerPaymentStatus .down.> BillingDatabase : ?
 BillingDatabase <--> WorkerSubscription : Воркер добавляет/удаляет(покупка/возврат) роли в Auth модуле
-WorkerSubscription --> Auth : Он же мониторит окончение подписок(Auth отзывает JWT)
+WorkerSubscription -down-> Auth : Он же мониторит окончение подписок(Auth отзывает JWT)
+WorkerSubscription -right-> Notification
 Admin -left-> AdminPanel
 AdminPanel -left-> BillingDatabase
 

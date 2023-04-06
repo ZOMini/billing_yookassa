@@ -150,31 +150,6 @@ services:
     networks:
       - rabbitmq
 
-  # ugc_api:
-  #   build: ./ugc_api
-  #   container_name: ugc_api
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - RABBIT_HOST=rabbitmq
-  #     - MONGO_URL=mongodb://mongodb:27017
-  #   depends_on:
-  #     - mongodb
-  #   ports:
-  #     - '8000:8000'
-  #   networks:
-  #     - rabbitmq
-
-  # mongodb:
-  #   container_name: mongodb
-  #   image: mongo
-  #   ports:
-  #     - 27017:27017
-  #   volumes:
-  #     - mo_data:/mo_data
-  #   networks:
-  #     - rabbitmq
-
   mailhog:
     image: mailhog/mailhog:latest
     container_name: mailhog
