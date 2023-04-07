@@ -25,6 +25,10 @@
     - psql -U app -h localhost -d auth_db
     - SELECT * FROM users;
     - SELECT * FROM roles;
+  - notif_db:
+    - psql -U app -h localhost -d notif_db
+    - SELECT * FROM notifications;
+    - SELECT * FROM adminnotifevent;
   - redis:
     - redis-cli
     - keys *

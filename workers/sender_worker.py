@@ -1,21 +1,24 @@
 import logging
 import time
 
+from db_conn import db_session
+from db_models import Notification, NotificationTypesEnum
 from mail_sender import send_mail
 from mailhog import Mailhog
 from schedule import every, repeat, run_pending
 from sqlalchemy import or_
-
-from db_conn import db_session
-from db_models import Notification, NotificationTypesEnum
 
 mailhog = Mailhog()
 
 @repeat(every().second)
 def instant_notification_job():
     notifications = db_session.query(Notification).filter(or_(
-        Notification.notification_type == NotificationTypesEnum.user_create.value,
-        Notification.notification_type == NotificationTypesEnum.change_password.value),
+            Notification.notification_type == NotificationTypesEnum.user_create.value,
+            Notification.notification_type == NotificationTypesEnum.change_password.value,
+            Notification.notification_type == NotificationTypesEnum.payment_accepted.value,
+            Notification.notification_type == NotificationTypesEnum.payment_refund.value,
+            Notification.notification_type == NotificationTypesEnum.subscription_expires.value,
+            Notification.notification_type == NotificationTypesEnum.subscription_expired.value),
         Notification.ready == True,
         Notification.status == False)
     for n in notifications:

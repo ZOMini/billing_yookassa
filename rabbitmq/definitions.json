@@ -7,6 +7,10 @@
     "password": "qweqwe",
     "tags": ""
   }, {
+    "name": "bill_publisher",
+    "password": "qweqwe",
+    "tags": ""
+  }, {
     "name": "admin",
     "password": "12345678",
     "tags": "administrator"
@@ -26,6 +30,12 @@
       "read":".*"
     }, {
       "user":"auth_publisher",
+      "vhost":"/",
+      "configure":".*",
+      "write":".*",
+      "read":".*"
+    }, {
+      "user":"bill_publisher",
       "vhost":"/",
       "configure":".*",
       "write":".*",

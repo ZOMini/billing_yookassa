@@ -1,14 +1,15 @@
 import asyncio
-import datetime
 import logging
 import time
 from http import HTTPStatus
 
 import aiohttp
-from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.sql import func, select
-from worker_core.worker_service import del_subscriber, post_subscriber
+from worker_core.worker_service import (
+    del_subscriber,
+    expires_subscriber,
+    post_subscriber
+)
 
 from core.config import settings
 from models.models_pg import PaymentPG, Tariff, UserStatus
@@ -25,12 +26,12 @@ async def main_worker():
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=35, loop=loop)) as ahttp:
             await post_subscriber(pg, ahttp)
             await del_subscriber(pg, ahttp)
+            # await expires_subscriber(pg)
     await engine.dispose()
 
 while True:
     time.sleep(5)
     loop = asyncio.new_event_loop()
     loop.run_until_complete(main_worker())
-    asyncio.sleep(0)
     loop.close()
     logging.error('INFO main_worker() - loop OK')

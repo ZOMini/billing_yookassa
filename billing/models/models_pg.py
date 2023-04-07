@@ -1,6 +1,5 @@
 import datetime
 import enum
-import logging
 import uuid
 
 from sqlalchemy import (
@@ -11,22 +10,22 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Interval,
-    String,
-    select
+    String
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Relationship, joinedload, selectinload
+from sqlalchemy.orm import Relationship
 from sqlalchemy.sql import func
 
-from db.pg import Base, async_session, engine, get_pg
+from db.pg import Base, engine
 
 
 class StatusEnum(enum.Enum):
     succeeded = "succeeded"
     canceled = "canceled"
     pending = "pending"
+    refund = "refund"
 
 
 class UserStatus(Base):
@@ -34,9 +33,9 @@ class UserStatus(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, unique=True, nullable=False)
-    subscriber = Column(Boolean, default=False)
     expires_at = Column(DateTime(timezone=False), default=None, nullable=True)
-    actual = Column(Boolean, default=False)
+    actual = Column(Boolean, default=False)  #  Если True, то подписка выдана. "Флаг" для воркера.
+    expires_status = Column(Boolean, default=False)  # Если True, то воркер отправил сообщение о скором окончании подписки.
     payments = Relationship("PaymentPG", back_populates="userstatus")
 
     def __repr__(self) -> str:
@@ -61,7 +60,6 @@ class PaymentPG(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
-    # user_id = Column(UUID(as_uuid=True), nullable=False)
     created_at = Column(DateTime(timezone=False), server_default=func.now())
     # expires_at = Column(DateTime(timezone=True), server_default=(func.now() + func.make_interval(0, 0, 0, 30)))
     payment = Column(String(127), nullable=False)
@@ -81,45 +79,9 @@ async def test_data():
                   days=datetime.timedelta(30),
                   price=100.0,
                   description='Покупка подписки на 30 дней.')
-    # userstatus = UserStatus(id='ffe0d805-3595-4cc2-a892-f2bedbec4ac9')
-    # payment = PaymentPG(id='ffe0d805-3595-4cc2-a892-f2bedbec4ac2',
-    #                     user_id='ffe0d805-3595-4cc2-a892-f2bedbec4ac3',
-    #                     payment='qq11',
-    #                     status='canceled',
-    #                     tariff = tariff,
-    #                     userstatus = userstatus)
     async with AsyncSession(engine) as session:
         try:
             session.add(tariff)
             await session.commit()
         except IntegrityError:
             await session.rollback()
-        # try:
-        #     session.add(userstatus)
-        #     await session.commit()
-        # except IntegrityError:
-        #     await session.rollback()
-        # try:
-        #     session.add(payment)
-        #     await session.commit()
-        # except IntegrityError:
-        #     await session.rollback()
-        # try:
-        #     session.add(payment)
-        #     await session.commit()
-        # except IntegrityError:
-        #     await session.rollback()
-        # stmt = select(UserStatus)
-        # us1 = await session.scalars(stmt)
-        # us2 = us1.one_or_none()
-        # logging.error('AAAAAAAAAAAAAAAA us2 %s', us2.id)
-        # stmt = select(PaymentPG)
-        # p1 = await session.scalars(stmt)
-        # p2 = p1.one_or_none()
-        # logging.error('AAAAAAAAAAAAAAAA p2 %s', p2.userstatus.id)
-        # # p2.userstatus_id.append(p2)
-        # await session.commit()
-        # stmt = select(UserStatus).options(joinedload(UserStatus.payments))
-        # qq11 = await session.scalars(stmt)
-        # qq22 = qq11.first()
-        # logging.error('AAAAAAAAAAAAAAAA qq33 %s', qq22.payments[0].id)

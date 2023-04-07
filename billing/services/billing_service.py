@@ -1,22 +1,20 @@
 import datetime
 import json
 import logging
-import math
 import uuid
 from functools import lru_cache
 
-from aiohttp import BasicAuth, ClientResponse, ClientSession
+from aiohttp import BasicAuth, ClientSession
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import func, select
-from yookassa import Payment
-from yookassa.domain.response import PaymentResponse
+from sqlalchemy.sql import select
 
 from core.config import settings
 from db.abstract import CacheStorage
 from db.aiohttp import get_aiohttp
 from db.pg import get_pg
+from db.rabbitmq import rabbit_conn
 from db.redis import get_redis
 from models.models_pg import PaymentPG, Tariff, UserStatus
 from services.aio_requests import AioRequests
@@ -28,65 +26,70 @@ class BillingService:
         self.pg = pg
         self.aiohttp = aiohttp
 
-    async def _refund_process(self, summ: int, payment: PaymentPG, refund_days: int):
+    async def _post_event(self, user_id: str, event: str):
+        try:
+            logging.error('BILL _post_event() USER_ID - %s', user_id)
+            body = {'user_id': user_id, 'event_type': event}
+            connection = rabbit_conn()
+            channel = connection.channel()
+            channel.basic_publish(settings.EXCHANGE, settings.ROUTING_KEY, json.dumps(body))
+            logging.error('RABBIT _post_event() BILL - OK')
+            connection.close()
+        except Exception as e:
+            logging.error('RABBIT _post_event() BILL ERROR - %s', e)
+
+    async def _refund_process(self, payment: PaymentPG):
         """Метод непосредственно производит возврат."""
         async with self.aiohttp.post(
             'https://api.yookassa.ru/v3/refunds',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
             headers={'Idempotence-Key': str(uuid.uuid4())},
-            json=AioRequests.refund_body(payment, summ)
+            json=AioRequests.refund_body(payment)
         ) as result:
             response_obj = await result.json()
-            logging.error('zzzzzzzzzzzzzzzzzzzzz max_refund %s', response_obj)
+            logging.error('zzzzzzzzzzzzzzzzzzzzz _refund_process %s', response_obj)
             try:
                 if response_obj['status'] != 'succeeded':
                     raise HTTPException(400, response_obj['status'])
             except KeyError:
                 raise HTTPException(400, response_obj['description'])
-        payment.userstatus.expires_at = payment.userstatus.expires_at - datetime.timedelta(days=refund_days)
-        # if payment.userstatus.expires_at.timestamp() < datetime.datetime.now().timestamp():
-        #     payment.userstatus.actual = False
+        payment.userstatus.expires_at = datetime.datetime.now()
+        payment.status = 'refund'
 
-    async def _calculation_refund(self, summ: int, payment: PaymentPG):
-        """Метод счетает количество дней заявленных для возврата."""
-        days_remained = (payment.userstatus.expires_at - datetime.datetime.now()).days
-        if days_remained <= 0:
-            raise HTTPException(400, 'Возврат не возможен. Подписка не активна.')
-        price_day = payment.income / payment.tariff.days.days
-        max_refund = days_remained * price_day
-        refund_days = math.ceil(summ / price_day)
-        logging.error('zzzzzzzzzzzzzzzzzzzzz max_refund %s --- %s', max_refund, summ)
-        if max_refund < summ:
-            raise HTTPException(400, 'Возврат не возможен. Сумма запрошенная на возврат, больше максимально возможной.')
-        return refund_days
 
     async def _get_payment_by_userid(self, user_id: uuid.UUID) -> PaymentPG:
         """Метод возвращает последнюю succeeded подписку. Либо 400-тит"""
+        scalar = await self.pg.scalars(select(PaymentPG).filter(PaymentPG.userstatus_id==user_id).filter(PaymentPG.status == 'refund').limit(1))
+        refund = scalar.first()
+        if refund:
+            raise HTTPException(400, 'Возврат не возможен. Возврат уже производился. Можно только 1-н раз.')
         scalar = await self.pg.scalars(select(PaymentPG).options(joinedload(PaymentPG.tariff), joinedload(PaymentPG.userstatus)).filter(PaymentPG.userstatus_id == user_id).filter(PaymentPG.status == 'succeeded').order_by(PaymentPG.created_at.desc()).limit(1))
         payment = scalar.first()
         if not payment:
             raise HTTPException(400, 'Возврат не возможен. У пользователя нет оплаченных подписок.')
+        if payment.created_at + datetime.timedelta(days=3) < datetime.datetime.now():
+            raise HTTPException(400, 'Возврат не возможен. С момента оплаты прошло больше 3-х дней.')
         return payment
         
-    async def yoo_refunds(self, user_id: uuid.UUID, summ: int):
+    async def yoo_refunds(self, user_id: uuid.UUID) -> PaymentPG:
         payment = await self._get_payment_by_userid(user_id)
-        refund_days = await self._calculation_refund(summ, payment)
-        await self._refund_process(summ, payment, refund_days)
+        await self._refund_process(payment)
         await self.pg.commit()
         logging.error('yoo_refunds - True')
+        return payment
 
     async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
-        tarif = await self._get_tariff_obj(tarif_id)
+        tarif = await self._get_tariff_obj(str(tarif_id))
         async with self.aiohttp.post(
             'https://api.yookassa.ru/v3/payments',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
-            json=AioRequests.post_body(tarif.price, user_id, tarif_id, redis_id),
+            json=AioRequests.post_body(user_id, tarif, redis_id),
             headers=AioRequests.post_headers(redis_id)
         ) as payment:
             logging.error('INFO payment.json() %s', await payment.json())
             return await payment.json(), payment.status
 
-    async def yoo_payment_get(self, yoo_id: uuid.UUID | str) -> dict:
+    async def yoo_payment_get(self, yoo_id: uuid.UUID | str) -> tuple[dict, str]:
         async with self.aiohttp.get(
             f'https://api.yookassa.ru/v3/payments/{yoo_id}',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
@@ -141,7 +144,7 @@ class BillingService:
         obj =  PaymentPG(
             id=data['id'],
             payment=f'{card_type} - **** **** **** {last4}',
-            income=float(data['income_amount']['value']),
+            income=float(data['amount']['value']),
             status=data['status'],
             tariff=t_obj,
             userstatus=u_obj)

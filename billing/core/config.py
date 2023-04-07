@@ -4,6 +4,13 @@ from pydantic import BaseSettings, Field
 
 
 class Settings(BaseSettings):
+    EXCHANGE = Field('notifications')
+    INSTANT_QUEUE = Field('instant_events')
+    ROUTING_KEY = Field('instant_events')
+    RABBIT_USER = Field('bill_publisher')
+    RABBIT_PASS = Field('qweqwe')
+    RABBIT_HOST = Field('rabbitmq')
+
     postgres_db: str = Field(...)
     postgres_user: str = Field(...)
     postgres_password: str = Field(...)

@@ -2,10 +2,9 @@ import datetime
 import enum
 import uuid
 
+from db_conn import Base
 from sqlalchemy import ARRAY, Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
-
-from db_conn import Base
 
 
 class NotificationTypesEnum(enum.Enum):
@@ -13,6 +12,10 @@ class NotificationTypesEnum(enum.Enum):
     change_password = "change_password"
     new_films = "new_films"
     received_likes = "received_likes"
+    payment_accepted = "payment_accepted"
+    payment_refund = "payment_refund"
+    subscription_expires = "subscription_expires"
+    subscription_expired = "subscription_expired"
 
 
 class Notification(Base):

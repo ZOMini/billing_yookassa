@@ -1,4 +1,4 @@
-from models.models_pg import PaymentPG
+from models.models_pg import PaymentPG, Tariff
 
 
 class AioRequests:
@@ -12,15 +12,15 @@ class AioRequests:
 
 
     @staticmethod
-    def post_body(amount, user_id, tarif_id, redis_id):
+    def post_body(user_id: str, tarif: Tariff, redis_id: str):
         body = {
             "amount": {
-                "value": amount,
+                "value": tarif.price,
                 "currency": "RUB"
             },
             "metadata": {
                 'user_id': str(user_id),
-                'tarif_id': str(tarif_id)
+                'tarif_id': str(tarif.id)
             },
             "payment_method_data": {
                 "type": "bank_card"
@@ -31,16 +31,16 @@ class AioRequests:
                 "return_url": f"https://localhost/yookassa/api/v1/buy_return/{redis_id}"
             },
             "capture": True,
-            "description": "Покупка подписки на 30 дней."
+            "description": tarif.description
         }
         return body
 
 
     @staticmethod
-    def refund_body(payment: PaymentPG, summ: int):
+    def refund_body(payment: PaymentPG):
         body = {
             "amount": {
-                "value": f"{summ}",
+                "value": f"{payment.income}",
                 "currency": "RUB"
                 },
             "payment_id": str(payment.id)

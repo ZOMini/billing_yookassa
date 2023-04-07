@@ -1,12 +1,11 @@
 import logging
 
 import pika
-from rabbit_models import NotificationEvent, NotificationTypesEnum
-from text_msg import MSG_TXT
-
 from config import settings as SETT
 from db_conn import db_session, init_db
 from db_models import Notification
+from rabbit_models import NotificationEvent, NotificationTypesEnum
+from text_msg import MSG_TXT
 
 credentials = pika.PlainCredentials(username=SETT.RABBIT_USER, password=SETT.RABBIT_PASS)
 connection = pika.BlockingConnection(pika.ConnectionParameters(host=SETT.RABBIT_HOST, credentials=credentials))
@@ -37,6 +36,13 @@ def callback(ch, method, properties, body):
                                     user_email=notification.user_email,
                                     ready=False))
         logging.error('BABBIT WORKER received_likes')
+    elif notification.event_type == NotificationTypesEnum.payment_accepted or notification.event_type == NotificationTypesEnum.payment_refund or notification.event_type == NotificationTypesEnum.subscription_expires or notification.event_type == NotificationTypesEnum.subscription_expired:
+        db_session.add(Notification(notification.user_id, notification.event_type,
+                                    notification_text=MSG_TXT[str(notification.event_type.value)],
+                                    user_name=notification.user_name,
+                                    user_email=notification.user_email,
+                                    ready=False))
+        logging.error('BABBIT WORKER billing OK.')
     db_session.commit()
 
 

@@ -3,10 +3,10 @@ import logging
 import time
 
 import aiohttp
-
 from config import settings as SETT
 from db_conn import db_session, init_db
 from db_models import AdminNotifEvent, Notification, NotificationTypesEnum
+from sqlalchemy import or_
 
 init_db()
 
@@ -37,6 +37,17 @@ async def enrich_received_likes():
     for n in notifications:
         await _enrich_user_by_id(n)
 
+async def enrich_billing():
+    notifications = db_session.query(Notification).filter(or_(
+            Notification.notification_type == NotificationTypesEnum.payment_accepted.value,
+            Notification.notification_type == NotificationTypesEnum.payment_refund.value,
+            Notification.notification_type == NotificationTypesEnum.subscription_expires.value,
+            Notification.notification_type == NotificationTypesEnum.subscription_expired.value),
+        Notification.status == False,
+        Notification.ready == False
+    )
+    for n in notifications:
+        await _enrich_user_by_id(n)
 
 async def enrich_new_film():
     nonif_admin = db_session.query(AdminNotifEvent).filter(
@@ -46,7 +57,7 @@ async def enrich_new_film():
     for na in nonif_admin:
         for _id in na.user_ids:
             n = Notification(_id,
-                             NotificationTypesEnum.new_films,
+                             NotificationTypesEnum.new_films.value,
                              na.notification_text,
                              status=False,
                              ready=False)
@@ -59,7 +70,8 @@ async def enrich_new_film():
 while True:
     loop = asyncio.new_event_loop()
     tasks = [enrich_received_likes(),
-             enrich_new_film()]
+             enrich_new_film(),
+             enrich_billing()]
 
     async def main():
         await asyncio.gather(*tasks)
