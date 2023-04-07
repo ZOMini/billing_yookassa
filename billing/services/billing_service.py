@@ -26,7 +26,7 @@ class BillingService:
         self.pg = pg
         self.aiohttp = aiohttp
 
-    async def _post_event(self, user_id: str, event: str):
+    async def post_event(self, user_id: str, event: str):
         try:
             logging.error('BILL _post_event() USER_ID - %s', user_id)
             body = {'user_id': user_id, 'event_type': event}

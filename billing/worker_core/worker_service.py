@@ -10,7 +10,7 @@ from sqlalchemy.sql import func, select
 
 from core.config import settings
 from db.rabbitmq import rabbit_conn
-from models.models_pg import PaymentPG, Tariff, UserStatus
+from models.models_pg import UserStatus
 
 VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED, HTTPStatus.NO_CONTENT)
 
@@ -36,9 +36,9 @@ async def post_subscriber(pg: AsyncSession, ahttp: ClientSession):
             if result.status in VALID_HTTP_STATUS:
                 us.actual = True
                 await pg.commit()
-                logging.error('INFO main_worker() - post OK')
+                logging.error('INFO post_subscriber() - post OK')
             else:
-                logging.error('ERROR main_worker() - post %s -- %s -- %s', result.status, result.reason, {'role': 'subscriber', 'user': str(us.id)})
+                logging.error('ERROR post_subscriber() - post %s -- %s -- %s', result.status, result.reason, {'role': 'subscriber', 'user': str(us.id)})
 
 async def del_subscriber(pg: AsyncSession, ahttp: ClientSession):
     current_time = datetime.datetime.now(tz=None)

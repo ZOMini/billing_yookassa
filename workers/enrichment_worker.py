@@ -3,10 +3,11 @@ import logging
 import time
 
 import aiohttp
+from sqlalchemy import or_
+
 from config import settings as SETT
 from db_conn import db_session, init_db
 from db_models import AdminNotifEvent, Notification, NotificationTypesEnum
-from sqlalchemy import or_
 
 init_db()
 

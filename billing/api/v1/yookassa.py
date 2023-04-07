@@ -60,7 +60,7 @@ async def get_buy_return(
     if status not in VALID_HTTP_STATUS:
         return HTTPException(status, payment['code'])
     await billing_service.post_payment_pg(payment)
-    await billing_service._post_event(payment['metadata']['user_id'], 'payment_accepted')
+    await billing_service.post_event(payment['metadata']['user_id'], 'payment_accepted')
     template = html_buy_return(payment['metadata']['user_id'], payment['status'], payment['description'])
     return HTMLResponse(template, HTTPStatus.OK)
 
@@ -72,6 +72,6 @@ async def get_buy_subscription(
     """GET HTML метод для браузера. По id пользователя и сумме делает возврат,
     в рамках последней успешной транзакции."""
     payment = await billing_service.yoo_refunds(user_id)
-    await billing_service._post_event(str(payment.userstatus_id), 'payment_refund')
+    await billing_service.post_event(str(payment.userstatus_id), 'payment_refund')
     template = html_refund(user_id)
     return HTMLResponse(template, HTTPStatus.OK)

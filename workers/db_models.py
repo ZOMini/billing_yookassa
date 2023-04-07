@@ -2,9 +2,10 @@ import datetime
 import enum
 import uuid
 
-from db_conn import Base
 from sqlalchemy import ARRAY, Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
+
+from db_conn import Base
 
 
 class NotificationTypesEnum(enum.Enum):

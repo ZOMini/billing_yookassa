@@ -1,10 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import (
-    QueryPropertyDescriptor,
-    declarative_base,
-    scoped_session,
-    sessionmaker
-)
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from core.config import settings
 

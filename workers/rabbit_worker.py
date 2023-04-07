@@ -1,6 +1,7 @@
 import logging
 
 import pika
+
 from config import settings as SETT
 from db_conn import db_session, init_db
 from db_models import Notification

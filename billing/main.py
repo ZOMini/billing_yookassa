@@ -1,10 +1,7 @@
-import logging
-
 import aioredis
-import fastapi
 import uvicorn
 import var_dump as var_dump
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
 from api.v1 import yookassa

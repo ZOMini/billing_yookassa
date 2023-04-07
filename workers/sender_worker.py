@@ -1,12 +1,13 @@
 import logging
 import time
 
-from db_conn import db_session
-from db_models import Notification, NotificationTypesEnum
 from mail_sender import send_mail
 from mailhog import Mailhog
 from schedule import every, repeat, run_pending
 from sqlalchemy import or_
+
+from db_conn import db_session
+from db_models import Notification, NotificationTypesEnum
 
 mailhog = Mailhog()
 

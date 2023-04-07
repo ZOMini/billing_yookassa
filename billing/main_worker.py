@@ -5,14 +5,13 @@ from http import HTTPStatus
 
 import aiohttp
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from core.config import settings
 from worker_core.worker_service import (
     del_subscriber,
     expires_subscriber,
     post_subscriber
 )
-
-from core.config import settings
-from models.models_pg import PaymentPG, Tariff, UserStatus
 
 VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED, HTTPStatus.NO_CONTENT)
 
@@ -26,7 +25,7 @@ async def main_worker():
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=35, loop=loop)) as ahttp:
             await post_subscriber(pg, ahttp)
             await del_subscriber(pg, ahttp)
-            # await expires_subscriber(pg)
+            await expires_subscriber(pg)
     await engine.dispose()
 
 while True:
