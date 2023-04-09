@@ -25,7 +25,7 @@ async def get_buy_subscription(
     logging.error('INFO redis_id - %s', redis_id)
     payment, status = await billing_service.yoo_payment_create(user_id, tarif_id, redis_id)
     if status not in (VALID_HTTP_STATUS):
-        return HTTPException(status, payment['code'])
+        raise HTTPException(status, payment['code'])
     # так как пока не понятно в этом сервисе(callback) или это будет отделный воркер,
     # сохранять id необработанных платежей(+redis id как ключ) буду в редисе.
     redis_result = await billing_service.create_pair_id(redis_id, payment['id'])
@@ -44,7 +44,7 @@ async def get_buy_subscription(
     redis_id = str(uuid.uuid4())
     payment, status = await billing_service.yoo_payment_create(user_id, tarif_id, redis_id)
     if status not in (VALID_HTTP_STATUS):
-        return HTTPException(status, payment['code'])
+        raise HTTPException(status, payment['code'])
     await billing_service.create_pair_id(redis_id, payment['id'])
     return payment['confirmation']['confirmation_url']
 
@@ -58,9 +58,10 @@ async def get_buy_return(
     yoo_id = await billing_service.get_yoo_id(redis_id)
     payment, status = await billing_service.yoo_payment_get(yoo_id)
     if status not in VALID_HTTP_STATUS:
-        return HTTPException(status, payment['code'])
+        raise HTTPException(status, payment['code'])
     await billing_service.post_payment_pg(payment)
     await billing_service.post_event(payment['metadata']['user_id'], 'payment_accepted')
+    await billing_service.del_redis_pair(redis_id)
     template = html_buy_return(payment['metadata']['user_id'], payment['status'], payment['description'])
     return HTMLResponse(template, HTTPStatus.OK)
 

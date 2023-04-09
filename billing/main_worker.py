@@ -26,7 +26,10 @@ async def main_worker():
             await post_subscriber(pg, ahttp)
             await del_subscriber(pg, ahttp)
             await expires_subscriber(pg)
+            await asyncio.sleep(0)
     await engine.dispose()
+    await ahttp.close()
+
 
 while True:
     time.sleep(5)

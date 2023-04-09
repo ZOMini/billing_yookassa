@@ -5,6 +5,7 @@ import uuid
 from functools import lru_cache
 
 from aiohttp import BasicAuth, ClientSession
+from aioredis import Redis
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -21,7 +22,7 @@ from services.aio_requests import AioRequests
 
 
 class BillingService:
-    def __init__(self, cache: CacheStorage, pg: AsyncSession, aiohttp: ClientSession):
+    def __init__(self, cache: Redis, pg: AsyncSession, aiohttp: ClientSession):
         self.cache = cache
         self.pg = pg
         self.aiohttp = aiohttp
@@ -36,7 +37,7 @@ class BillingService:
             logging.error('RABBIT _post_event() BILL - OK')
             connection.close()
         except Exception as e:
-            logging.error('RABBIT _post_event() BILL ERROR - %s', e)
+            logging.error('ERROR RABBIT _post_event() BILL ERROR - %s', e)
 
     async def _refund_process(self, payment: PaymentPG):
         """Метод непосредственно производит возврат."""
@@ -47,7 +48,7 @@ class BillingService:
             json=AioRequests.refund_body(payment)
         ) as result:
             response_obj = await result.json()
-            logging.error('zzzzzzzzzzzzzzzzzzzzz _refund_process %s', response_obj)
+            logging.error('INFO zzzzzzzzzzzzzzzzzzzzz _refund_process %s', response_obj)
             try:
                 if response_obj['status'] != 'succeeded':
                     raise HTTPException(400, response_obj['status'])
@@ -109,8 +110,14 @@ class BillingService:
     async def get_yoo_id(self, redis_id: uuid.UUID) -> str | None:
         """А тут мы получаем по radis_id(из квари параметра return_url) - payment_id yookass'ы."""
         yoo_id = await self.cache.get(str(redis_id))
+        if not yoo_id:
+            raise HTTPException(404, f'redis_id - {redis_id} - уже обработан.')
         logging.error('INFO redis_yoo_id - %s', yoo_id)
         return yoo_id
+
+    async def del_redis_pair(self, redis_id: uuid.UUID) -> None:
+        """Удаляем пару из редиса."""
+        await self.cache.delete(str(redis_id))
 
     async def _get_tariff_obj(self, id: str | uuid.UUID) -> Tariff:
         tariff = await self.pg.get(Tariff, id)
@@ -140,7 +147,6 @@ class BillingService:
     async def _post_payment_obj(self, data: dict, t_obj: Tariff, u_obj: UserStatus) -> None:
         card_type = data['payment_method']['card']['card_type']
         last4 = data['payment_method']['card']['last4']
-        logging.error('11111111111111111111111111 - %s', u_obj)
         obj =  PaymentPG(
             id=data['id'],
             payment=f'{card_type} - **** **** **** {last4}',
