@@ -31,4 +31,4 @@
     - SELECT * FROM adminnotifevent;
   - redis:
     - redis-cli
-    - keys *  
+    - keys *
