@@ -7,10 +7,6 @@ import aiohttp
 import orjson
 from config import settings
 
-# ~ 10к запросов при 4-х воркерах, ну и +- все равно может упасть, захлебывается со временем, лень тайминги разруливать.
-# Для моего компа 350-400 в секунду ручка выдерживает, при 4-х воркерах. ~250 при 1-м.
-# На крутом серве думаю +- 25к в сек можно добиться.
-
 
 async def ahttp_test(i: int):
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=35, loop=asyncio.get_event_loop(), verify_ssl=False)) as client:

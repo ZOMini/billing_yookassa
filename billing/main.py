@@ -24,7 +24,7 @@ async def startup():
     await init_db()
     await test_data()
     redis.redis = await aioredis.from_url(
-        f'redis://{settings.redis_host}:{settings.redis_port}',
+        f'redis://{settings.redis_bill}:{settings.redis_port}',
         decode_responses=True, max_connections=128)
 
 @app.on_event('shutdown')

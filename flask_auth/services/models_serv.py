@@ -58,7 +58,7 @@ class UserServ(User):
                     connection.close()
                 except Exception as e:
                     logging.error('RABBIT AUTH ERROR - %s', e)
-                return jsonify(f'User created. Login is email. id - {user.id}'), HTTP.CREATED
+                return jsonify(msg='User created. Login is email.', id = user.id), HTTP.CREATED
             except Exception as e:
                 db_session.rollback()
                 return jsonify(msg="Wrong email or password or name",

@@ -50,7 +50,7 @@ services:
     env_file: 
       - ./.env
     volumes:
-      - redis_data:/redis/data
+      - redis_bill:/redis_bill/data
     restart: always
     networks:
       - billing_nw
@@ -70,7 +70,7 @@ services:
       - billing_nw
 
 volumes:
-  redis_data:
+  redis_bill:
   billing_db_data:
 
 networks:
