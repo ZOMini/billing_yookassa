@@ -32,7 +32,7 @@ async def main_worker():
 
 
 while True:
-    time.sleep(5)
+    time.sleep(1)
     loop = asyncio.new_event_loop()
     loop.run_until_complete(main_worker())
     loop.close()

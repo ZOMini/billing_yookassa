@@ -150,8 +150,8 @@ def delete_role_from_user():
 
 
 @role.route('/user/roles/<string:user>', methods=['GET'])
-@jwt_required()
-@role_required('admin')
+# @jwt_required()
+# @role_required('admin')
 def get_user_roles(user: str):
     """
     ---

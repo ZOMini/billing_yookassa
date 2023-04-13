@@ -12,7 +12,7 @@ from template.refund import html_refund
 router = APIRouter()
 VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED)
 
-@router.get('/buy_subscription/{user_id}/{tarif_id}')
+@router.get('/buy_subscription')
 async def get_buy_subscription(
         user_id: uuid.UUID,
         tarif_id: uuid.UUID,
@@ -32,7 +32,7 @@ async def get_buy_subscription(
     logging.error('INFO redis_result - %s', redis_result)
     return RedirectResponse(payment['confirmation']['confirmation_url'])
 
-@router.post('/buy_subscription/{user_id}/{tarif_id}')
+@router.post('/buy_subscription')
 async def get_buy_subscription(
         user_id: uuid.UUID,
         tarif_id: uuid.UUID,

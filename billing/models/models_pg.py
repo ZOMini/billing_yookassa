@@ -76,9 +76,9 @@ class PaymentPG(Base):
 
 async def test_data():
     tariff = Tariff(id='ffe0d805-3595-4cc2-a892-f2bedbec4ac1',
-                  days=datetime.timedelta(30),
-                  price=100.0,
-                  description='Покупка подписки на 30 дней.')
+                    days=datetime.timedelta(30),
+                    price=100.0,
+                    description='Покупка подписки на 30 дней.')
     async with AsyncSession(engine) as session:
         try:
             session.add(tariff)

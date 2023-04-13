@@ -304,3 +304,34 @@ def get_user_by_id():
     if not user:
         return jsonify(), HTTP.NOT_FOUND
     return jsonify(user_id=user.id, username=user.name, email=user.email), HTTP.OK
+
+@auth.route("/get_user_by_name", methods=["GET"])
+def get_user_by_name():
+    """
+    ---
+    get:
+      summary: get_user_id
+      description: Ручка для микросервисов.
+      parameters:
+        - name: username
+          in: query
+          description: username пользователя
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema: GetByIDUserSchema
+        404:
+          description: NOT_FOUND
+      tags:
+        - Auth
+    """
+    username = request.args.get('username')
+    user = UserServ.get_obj_by_name(username)
+    if not user:
+        return jsonify(), HTTP.NOT_FOUND
+    return jsonify(user_id=user.id), HTTP.OK

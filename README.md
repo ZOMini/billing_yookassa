@@ -32,3 +32,5 @@
   - redis:
     - redis-cli
     - keys *
+  - tests:
+    - pytest ./tests -o log_cli=true -vvv --log-level=DEBUG --disable-warnings
