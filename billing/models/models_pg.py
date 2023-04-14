@@ -34,7 +34,7 @@ class UserStatus(Base):
 
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, unique=True, nullable=False)
     expires_at = Column(DateTime(timezone=False), default=None, nullable=True)
-    actual = Column(Boolean, default=False)  #  Если True, то подписка выдана. "Флаг" для воркера.
+    actual = Column(Boolean, default=False)  # Если True, то подписка выдана. "Флаг" для воркера.
     expires_status = Column(Boolean, default=False)  # Если True, то воркер отправил сообщение о скором окончании подписки.
     payments = Relationship("PaymentPG", back_populates="userstatus")
 
@@ -54,6 +54,7 @@ class Tariff(Base):
 
     def __repr__(self) -> str:
         return str(self.id)
+
 
 class PaymentPG(Base):
     __tablename__ = 'payment'

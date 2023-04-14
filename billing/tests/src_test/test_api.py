@@ -19,11 +19,9 @@ async def test_create_payment(make_post_request, get_redis_keys, get_or_create_u
     user_id = get_or_create_user
     _tariff = query_data['tariff']
     body, headers, status = await make_post_request(create_url, {'user_id': user_id, 'tarif_id': _tariff}, {})
-    logging.error('INFO - %s', body)
     assert status[0] == expected_answer['status_create']
     #  Тестируем что в ответ получили ссылку на платеж.
     assert 'https://yoomoney.ru/checkout/payments/v2/contract' in body[0]
     redis_keys = await get_redis_keys()
-    logging.error('INFO - %s', redis_keys)
     #  Тестируем что создалась пара ключей в редисе.
     assert len(redis_keys[1]) == expected_answer['redis_cnt']

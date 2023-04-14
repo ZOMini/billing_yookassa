@@ -77,7 +77,6 @@ def pg_write_data(pg_client: AsyncSession):
         pg_obj = obj(**data)
         pg_client.add(pg_obj)
         await pg_client.commit()
-        logging.error('INFO - pg_write_data - %s', pg_obj.id)
         return pg_obj.id
     return inner
 
@@ -85,12 +84,9 @@ def pg_write_data(pg_client: AsyncSession):
 @pytest.fixture(scope='session')
 def pg_write_payment_data(pg_client: AsyncSession) -> PaymentPG:
     async def inner(obj: PaymentPG, data: dict, tariff: Tariff, userstatus: UserStatus):
-        logging.error('INFO - userstatus %s ', type(userstatus))
         pg_obj: PaymentPG = obj(**data, tariff=tariff, userstatus=userstatus)
-        logging.error('INFO - pg_write_payment_data - %s', type(pg_obj))
         pg_client.add(pg_obj)
         await pg_client.commit()
-        logging.error('INFO - pg_write_data - %s', pg_obj.id)
         return pg_obj
     return inner
 
@@ -100,7 +96,6 @@ async def get_or_create_user(make_post_request, make_get_request) -> str:
     body, headers, status = await make_post_request(auth_create_url, {}, user_create_data)
     if status[0] == http.HTTPStatus.BAD_REQUEST:
         body, headers, status = await make_get_request(auth_get_id_url, {'username': 'testuser'})
-    logging.error('get_or_create_user ---- %s', body)
     return body[0]['user_id']
 
 
@@ -109,7 +104,6 @@ def pg_get_obj_by_id(pg_client: AsyncSession):
     async def inner(obj: Tariff | UserStatus | PaymentPG, id: str):
         await pg_client.flush()
         pg_obj = await pg_client.get(obj, id)
-        logging.error('INFO - pg_get_obj_by_id - %s', pg_obj)
         await pg_client.commit()
         await pg_client.flush()
         return pg_obj

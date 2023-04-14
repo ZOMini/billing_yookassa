@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     redis_port: int = Field(...)
     redis_url: str = Field(...)
     redis_expire: int = Field(...)
-    redis_bill: str =  Field(...)
+    redis_bill: str = Field(...)
 
     yoo_account_id: str = Field(...)
     yoo_secret_key: str = Field(...)
@@ -32,5 +32,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = '.env'
         env_file_encoding = 'utf-8'
+
 
 settings = Settings()

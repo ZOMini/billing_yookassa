@@ -1,5 +1,76 @@
 version: "3.2"
 services:
+  billing:
+    build: 
+      context: ./billing
+      dockerfile: Dockerfile_billing
+    container_name: billing
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+      - REDIS_HOST=redis_bill
+      - REDIS_URL=redis://redis_bill:6379
+    depends_on:
+      - billing_db
+      - redis_bill
+    ports:
+      - '443:443' 
+    networks:
+      - billing_nw
+      - rabbitmq
+    restart: on-failure
+
+  billing_worker:
+    build: 
+      context: ./billing
+      dockerfile: Dockerfile_billing_worker
+    container_name: billing_worker
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+    depends_on:
+      - billing_db
+      - billing
+    ports:
+      - '8088:8088' 
+    networks:
+      - billing_nw
+      - rabbitmq
+    restart: on-failure
+
+  redis_bill:
+    image: redis:alpine
+    container_name: redis_bill
+    env_file: 
+      - ./.env
+    volumes:
+      - redis_bill:/redis_bill/data
+    restart: always
+    ports:
+      - '6379:6379' 
+    networks:
+      - billing_nw
+
+  billing_db:
+    image: postgres:13-alpine
+    container_name: billing_db
+    env_file: 
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+    volumes:
+      - billing_db_data:/var/lib/postgresql/data/
+    restart: always
+    ports:
+      - '5432:5432'
+    networks:
+      - billing_nw
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: 'rabbitmq'
@@ -13,6 +84,25 @@ services:
         - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
     networks:
         - rabbitmq
+
+  billingadmin:
+    build: ./billing_admin
+    container_name: billingadmin
+    volumes:
+      - static_volume:/app/static
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=billing_db
+      - DB_HOST=billing_db
+    depends_on:
+      - notif_db
+    command: bash -c "python script.py && gunicorn config.wsgi --bind 0.0.0.0:8202"
+    ports:
+      - '8202:8202'
+    restart: on-failure
+    networks:
+      - billing_nw
 
   notif_db:
     image: postgres:13-alpine
@@ -124,7 +214,7 @@ services:
     env_file: 
       - ./.env
     volumes:
-      - redis_data:/data
+      - redis_data:/redis_auth/data
     restart: always
     networks:
       - rabbitmq
@@ -163,6 +253,8 @@ services:
       - rabbitmq
 
 volumes:
+  redis_bill:
+  billing_db_data:
   notif_db_data:
   auth_db_data:
   redis_data:
@@ -170,5 +262,7 @@ volumes:
   static_volume:
 
 networks:
+  billing_nw:
+    driver: bridge
   rabbitmq:
     driver: bridge

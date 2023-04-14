@@ -6,7 +6,10 @@
   - группа 10 - Пирогов Виталий/Игорь Синякин(@ee2 @sinyakinmail - в пачке)
 
 # Запуск
-  - docker-compose -f docker-compose-bill.yml -f docker-compose-notif.yml up --build
+  - docker-compose up --build
+  - для запуска нужны сертификаты для HTTPS(см. полезности)
+  - заполняем .env (см. .env.template)
+  - тесты локальные(см. полезности)
 
 # Полезности
   - сертификат ssl для HTTPS, браузеры будут ругаться(серты самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing
@@ -32,5 +35,5 @@
   - redis:
     - redis-cli
     - keys *
-  - tests:
+  - tests из папки billing:
     - pytest ./tests -o log_cli=true -v --log-level=DEBUG --disable-warnings

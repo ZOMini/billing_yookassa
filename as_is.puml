@@ -5,7 +5,7 @@ actor Admin
 actor User
 database AuthDatabase
 database BillingDatabase
-component StripeOrYookassa
+component Yookassa
 component Auth
 component AdminPanel
 component Billing
@@ -15,16 +15,16 @@ component Notification
 
 User -down-> Auth
 Auth -right-> AuthDatabase
+Auth -up-> Notification
 User -right-> Billing
-' Billing -down-> AuthDatabase
 Billing -right-> BillingDatabase
-Billing <-up-> StripeOrYookassa
-Billing <-up-> StripeOrYookassa : статус после оплаты
+Billing <-up-> Yookassa
+Billing <-up-> Yookassa : статус после оплаты
+Billing -down-> Notification
 BillingDatabase <--> WorkerSubscription : Воркер добавляет/удаляет(покупка/возврат) роли в Auth модуле
 WorkerSubscription -down-> Auth : Он же мониторит окончение подписок(Auth отзывает JWT)
-WorkerSubscription -right-> Notification
+WorkerSubscription -left-> Notification
 Admin -left-> AdminPanel
 AdminPanel -left-> BillingDatabase
-
 
 @enduml

@@ -10,7 +10,6 @@ class AioRequests:
         }
         return headers
 
-
     @staticmethod
     def post_body(user_id: str, tarif: Tariff, redis_id: str):
         body = {
@@ -35,14 +34,13 @@ class AioRequests:
         }
         return body
 
-
     @staticmethod
     def refund_body(payment: PaymentPG):
         body = {
             "amount": {
                 "value": f"{payment.income}",
                 "currency": "RUB"
-                },
+            },
             "payment_id": str(payment.id)
         }
         return body

@@ -9,8 +9,6 @@ load_dotenv()
 
 time.sleep(2)  # Ждем на всякий.
 # Фейк миграция movies, так как типо ставим на готовую базу.
-sys.argv = ['', 'migrate']
-runpy.run_path('./manage.py', run_name='__main__')
 
 # Миграции Django.
 sys.argv = ['', 'makemigrations']
@@ -19,9 +17,12 @@ runpy.run_path('./manage.py', run_name='__main__')
 sys.argv = ['', 'migrate', 'billing', '--fake']
 runpy.run_path('./manage.py', run_name='__main__')
 
-# # Собираем статику.
-# sys.argv = ['', 'collectstatic', '--noinput']
-# runpy.run_path('./manage.py', run_name='__main__')
+sys.argv = ['', 'migrate']
+runpy.run_path('./manage.py', run_name='__main__')
+
+# Собираем статику.
+sys.argv = ['', 'collectstatic', '--noinput']
+runpy.run_path('./manage.py', run_name='__main__')
 
 # Создаем суперпользователя(superuser/password).
 username = os.environ.get('supername', 'superuser')

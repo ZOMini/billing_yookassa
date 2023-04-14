@@ -11,4 +11,3 @@ payment_for_subscription = {
     "payment": "card_type - **** **** **** 9999",
     "income": 100,
     "status": "succeeded"}
-

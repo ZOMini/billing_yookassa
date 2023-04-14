@@ -15,11 +15,13 @@ from tests.test_settings import pg_bill_url, redis_url
 DATA_BASE = pg_bill_url
 engine = create_async_engine(DATA_BASE, echo=True, query_cache_size=0)
 
+
 @pytest.fixture(scope='session')
 def event_loop():
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
+
 
 @pytest_asyncio.fixture(scope='session')
 async def pg_client():
@@ -34,7 +36,7 @@ async def redis_client():
     yield redis
     # await redis.flushall()
     await redis.close()
-    
+
 
 @pytest_asyncio.fixture(scope="session")
 async def ahttp_client() -> aiohttp.ClientSession:

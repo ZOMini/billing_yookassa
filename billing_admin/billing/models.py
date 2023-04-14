@@ -5,14 +5,13 @@ from django.db import models
 
 class UserStatus(models.Model):
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4,  editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     expires_at = models.DateTimeField(auto_now_add=False)
     actual = models.BooleanField()
     expires_status = models.BooleanField()
-    # payments = models.ForeignKey('PaymentPG', on_delete=models.CASCADE)
+
     class Meta:
         db_table = "public\".\"userstatus"
-
 
 
 class Tariff(models.Model):

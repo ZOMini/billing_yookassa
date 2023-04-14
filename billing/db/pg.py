@@ -15,6 +15,7 @@ async def init_db():
         # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
+
 async def get_pg() -> AsyncSession:
     async with async_session() as session:
         yield session
