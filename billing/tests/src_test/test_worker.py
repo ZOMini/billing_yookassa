@@ -20,7 +20,14 @@ expires_at_1_day_ago = datetime.datetime.now() - datetime.timedelta(days=1)
      ({'expires_at': expires_at_1_day_ago, 'sleep': 2, 'actual': True}, {'roles': ('No roles',), 'status': 404})]
 )
 @pytest.mark.asyncio
-async def test_worker(pg_write_data, get_or_create_user, pg_get_obj_by_id, pg_write_payment_data, make_get_request, clear_pg, query_data, expected_answer):
+async def test_worker(pg_write_data,
+                      get_or_create_user,
+                      pg_get_obj_by_id,
+                      pg_write_payment_data,
+                      make_get_request,
+                      clear_pg,
+                      query_data,
+                      expected_answer):
     """Так как все сильно завязано на сторонние ресурсы,
     то места для маневра очень мало). Чего смогу, то протестирую."""
     user_id = get_or_create_user
