@@ -30,7 +30,7 @@ async def _worker_post_event(user_id: str, event: str) -> None:
 async def post_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
     current_time = datetime.datetime.now(tz=None)
     scalars = await pg.scalars(select(UserStatus).filter(and_(
-        UserStatus.actual is False,
+        UserStatus.actual == False,
         UserStatus.expires_at > current_time)).limit(100))
     for us in scalars:
         ahttp.headers["Authorization"] = f"Bearer {settings.jwt_super}"
@@ -47,7 +47,7 @@ async def post_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
 async def del_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
     current_time = datetime.datetime.now(tz=None)
     scalars = await pg.scalars(select(UserStatus).filter(and_(
-        UserStatus.actual is True,
+        UserStatus.actual == True,
         UserStatus.expires_at < current_time)).limit(100))
     for us in scalars:
         async with ahttp.delete(settings.auth_role_url,
@@ -66,7 +66,7 @@ async def del_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
 async def expires_subscriber(pg: AsyncSession) -> None:
     current_time = datetime.datetime.now(tz=None)
     scalars = await pg.scalars(select(UserStatus).filter(and_(
-        UserStatus.expires_status is False,
+        UserStatus.expires_status == False,
         UserStatus.expires_at < current_time + datetime.timedelta(days=1))).limit(100))
     for us in scalars:
         us.expires_status = True

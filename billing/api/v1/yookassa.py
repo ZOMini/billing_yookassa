@@ -23,14 +23,12 @@ async def get_buy_subscription(
     Редиректит на yoomoney - для оплаты.
     Скорее тестовая ручка, пока не понятно."""
     redis_id = str(uuid.uuid4())
-    logging.error('INFO redis_id - %s', redis_id)
     payment, status = await billing_service.yoo_payment_create(user_id, tarif_id, redis_id)
     if status not in (VALID_HTTP_STATUS):
         raise HTTPException(status, payment['code'])
     # так как пока не понятно в этом сервисе(callback) или это будет отделный воркер,
     # сохранять id необработанных платежей(+redis id как ключ) буду в редисе.
-    redis_result = await billing_service.create_pair_id(redis_id, payment['id'])
-    logging.error('INFO redis_result - %s', redis_result)
+    await billing_service.create_pair_id(redis_id, payment['id'])
     return RedirectResponse(payment['confirmation']['confirmation_url'])
 
 
