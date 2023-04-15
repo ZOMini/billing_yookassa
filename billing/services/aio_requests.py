@@ -1,4 +1,4 @@
-from models.models_pg import PaymentPG, Tariff
+from models.models_pg import Currency, PaymentPG, Tariff
 
 
 class AioRequests:
@@ -15,7 +15,7 @@ class AioRequests:
         body = {
             "amount": {
                 "value": tarif.price,
-                "currency": "RUB"
+                "currency": Currency.rub.value
             },
             "metadata": {
                 'user_id': str(user_id),
@@ -39,7 +39,7 @@ class AioRequests:
         body = {
             "amount": {
                 "value": f"{payment.income}",
-                "currency": "RUB"
+                "currency": Currency.rub.value
             },
             "payment_id": str(payment.id)
         }

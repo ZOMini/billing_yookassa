@@ -17,8 +17,8 @@ VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED, HTT
 
 
 async def main_worker():
-    DATA_BASE = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
-    engine = create_async_engine(DATA_BASE)
+    data_base = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}/{settings.postgres_db}'
+    engine = create_async_engine(data_base)
     async_session = async_sessionmaker(engine, expire_on_commit=False)
     loop = asyncio.get_event_loop()
     async with async_session() as pg:

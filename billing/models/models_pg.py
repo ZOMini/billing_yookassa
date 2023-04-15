@@ -21,6 +21,11 @@ from sqlalchemy.sql import func
 from db.pg import Base, engine
 
 
+class Currency(enum.Enum):
+    rub = 'RUB'
+    usd = 'USD'
+
+
 class StatusEnum(enum.Enum):
     succeeded = "succeeded"
     canceled = "canceled"
@@ -62,7 +67,6 @@ class PaymentPG(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
     created_at = Column(DateTime(timezone=False), server_default=func.now())
-    # expires_at = Column(DateTime(timezone=True), server_default=(func.now() + func.make_interval(0, 0, 0, 30)))
     payment = Column(String(127), nullable=False)
     income = Column(Float, nullable=False)
     status = Column(Enum(StatusEnum), nullable=False)

@@ -6,10 +6,24 @@
   - группа 10 - Пирогов Виталий/Игорь Синякин(@ee2 @sinyakinmail - в пачке)
 
 # Запуск
-  - docker-compose up --build
+  - docker-compose -f docker-compose-prod.yml up --build
+  - docker-compose -f docker-compose-dev.yml up --build
   - для запуска нужны сертификаты для HTTPS(см. полезности)
   - заполняем .env (см. .env.template)
-  - тесты локальные(см. полезности)
+  - тесты теперь автоматом в docker-compose(billing_test)
+
+# URL
+  - http://localhost/auth/docs/v1/ - документация модуля Auth
+  - https://localhost/yookassa/api/openapi - документация модуля Billing
+  - http://localhost/bill/admin - Админка billing
+  - http://localhost/notif/admin - Админка notif
+  - http://localhost:8025/ - Mailhog
+  - http://127.0.0.1:15672/ - RabbitMQ
+
+# Миграции(init везде автоматом)
+  - доп. миграции, если необходимо то, из папки billing:
+  - alembic revision -m "migration2" --autogenerate
+  - alembic upgrade head
 
 # Полезности
   - сертификат ssl для HTTPS, браузеры будут ругаться(серты самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing
@@ -35,5 +49,6 @@
   - redis:
     - redis-cli
     - keys *
-  - tests из папки billing:
-    - pytest ./tests -o log_cli=true -v --log-level=DEBUG --disable-warnings
+  - Примеры запросов billing(нужен актуальный user_id из модуля Auth):
+    - https://localhost/yookassa/api/v1/buy_subscription?user_id=7d47c389-89ca-435f-8a78-f50734810fc8&tarif_id=ffe0d805-3595-4cc2-a892-f2bedbec4ac1
+    - https://localhost/yookassa/api/v1/refunds_subscription/7d47c389-89ca-435f-8a78-f50734810fc8

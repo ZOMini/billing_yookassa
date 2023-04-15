@@ -3,6 +3,7 @@ import json
 import logging
 import uuid
 from functools import lru_cache
+from http import HTTPStatus
 
 from aiohttp import BasicAuth, ClientSession
 from aioredis import Redis
@@ -17,8 +18,9 @@ from db.aiohttp import get_aiohttp
 from db.pg import get_pg
 from db.rabbitmq import rabbit_conn
 from db.redis import get_redis
-from models.models_pg import PaymentPG, Tariff, UserStatus
+from models.models_pg import PaymentPG, StatusEnum, Tariff, UserStatus
 from services.aio_requests import AioRequests
+from services.response_msg import ResponseMsg
 
 
 class BillingService:
@@ -47,25 +49,25 @@ class BillingService:
         ) as result:
             response_obj = await result.json()
             try:
-                if response_obj['status'] != 'succeeded':
-                    raise HTTPException(400, response_obj['status'])
+                if response_obj['status'] != StatusEnum.succeeded.value:
+                    raise HTTPException(HTTPStatus.BAD_REQUEST, response_obj['status'])
             except KeyError:
-                raise HTTPException(400, response_obj['description'])
+                raise HTTPException(HTTPStatus.BAD_REQUEST, response_obj['description'])
         payment.userstatus.expires_at = datetime.datetime.now()
-        payment.status = 'refund'
+        payment.status = StatusEnum.refund.value
 
     async def _get_payment_by_userid(self, user_id: uuid.UUID) -> PaymentPG:
         """Метод возвращает последнюю succeeded подписку. Либо 400-тит"""
-        scalar = await self.pg.scalars(select(PaymentPG).filter(PaymentPG.userstatus_id == user_id).filter(PaymentPG.status == 'refund').limit(1))
+        scalar = await self.pg.scalars(select(PaymentPG).filter(PaymentPG.userstatus_id == user_id).filter(PaymentPG.status == StatusEnum.refund.value).limit(1))
         refund = scalar.first()
         if refund:
-            raise HTTPException(400, 'Возврат не возможен. Возврат уже производился. Можно только 1-н раз.')
+            raise HTTPException(HTTPStatus.BAD_REQUEST, ResponseMsg.BAD_REQUEST_RETRY.value)
         scalar = await self.pg.scalars(select(PaymentPG).options(joinedload(PaymentPG.tariff), joinedload(PaymentPG.userstatus)).filter(PaymentPG.userstatus_id == user_id).filter(PaymentPG.status == 'succeeded').order_by(PaymentPG.created_at.desc()).limit(1))
         payment = scalar.first()
         if not payment:
-            raise HTTPException(400, 'Возврат не возможен. У пользователя нет оплаченных подписок.')
+            raise HTTPException(HTTPStatus.BAD_REQUEST, ResponseMsg.BAD_REQUEST_NO_PAYMENTS.value)
         if payment.created_at + datetime.timedelta(days=3) < datetime.datetime.now():
-            raise HTTPException(400, 'Возврат не возможен. С момента оплаты прошло больше 3-х дней.')
+            raise HTTPException(HTTPStatus.BAD_REQUEST, ResponseMsg.BAD_REQUEST_3_DAYS.value)
         return payment
 
     async def yoo_refunds(self, user_id: uuid.UUID) -> PaymentPG:
@@ -104,7 +106,7 @@ class BillingService:
         """А тут мы получаем по radis_id(из квари параметра return_url) - payment_id yookass'ы."""
         yoo_id = await self.cache.get(str(redis_id))
         if not yoo_id:
-            raise HTTPException(404, f'redis_id - {redis_id} - уже обработан.')
+            raise HTTPException(HTTPStatus.NOT_FOUND, f'{redis_id} {ResponseMsg.NOT_FOUND_RETRY.value}')
         return yoo_id
 
     async def del_redis_pair(self, redis_id: uuid.UUID) -> None:
@@ -114,7 +116,7 @@ class BillingService:
     async def _get_tariff_obj(self, id: str | uuid.UUID) -> Tariff:
         tariff = await self.pg.get(Tariff, id)
         if not tariff:
-            raise HTTPException(404, 'Нет такого тарифа.')
+            raise HTTPException(HTTPStatus.NOT_FOUND, ResponseMsg.NOT_FOUND_NO_TARIFF.value)
         return tariff
 
     async def _get_or_post_userstatus_obj(self, data: dict, tarif: Tariff) -> UserStatus:
@@ -123,7 +125,7 @@ class BillingService:
         Ставит булевый флаг для воркера, что бы проверить подписку в Auth модуле.
         Возвращает обновленный объект UserStatus."""
         u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])
-        status = True if data['status'] == 'succeeded' else False
+        status = True if data['status'] == StatusEnum.succeeded.value else False
         if not u_obj:
             self.pg.add(UserStatus(id=data['metadata']['user_id']))
             u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])

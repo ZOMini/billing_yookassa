@@ -1,3 +1,4 @@
+import asyncio
 import http
 import json
 import logging
@@ -96,7 +97,8 @@ async def get_or_create_user(make_post_request, make_get_request) -> str:
     body, headers, status = await make_post_request(auth_create_url, {}, user_create_data)
     if status[0] == http.HTTPStatus.BAD_REQUEST:
         body, headers, status = await make_get_request(auth_get_id_url, {'username': 'testuser'})
-    return body[0]['user_id']
+        return body[0]['user_id']
+    return body[0]['id']
 
 
 @pytest_asyncio.fixture()

@@ -1,0 +1,284 @@
+version: "3.2"
+services:
+  billing:
+    build: 
+      context: ./billing
+      dockerfile: Dockerfile_billing
+    container_name: billing
+    image: billing_image
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+      - REDIS_HOST=redis_bill
+      - REDIS_URL=redis://redis_bill:6379
+    depends_on:
+      - billing_db
+      - redis_bill
+    ports:
+      - '443:443' 
+    networks:
+      - billing_nw
+      - rabbitmq
+    restart: on-failure
+
+  billing_test:
+    image: billing_image
+    container_name: billing_test
+    depends_on:
+      - billing
+      - billing_worker
+      - billing_db
+      - redis_bill
+      - flask_auth
+    entrypoint: >
+      sh -c "pytest ./tests -o log_cli=true -v --log-level=DEBUG --disable-warnings"
+    networks:
+      - billing_nw
+      - rabbitmq
+
+  billing_worker:
+    build: 
+      context: ./billing
+      dockerfile: Dockerfile_billing_worker
+    container_name: billing_worker
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+    depends_on:
+      - billing_db
+      - billing
+    ports:
+      - '8088:8088' 
+    networks:
+      - billing_nw
+      - rabbitmq
+    restart: on-failure
+
+  redis_bill:
+    image: redis:alpine
+    container_name: redis_bill
+    env_file: 
+      - ./.env
+    volumes:
+      - redis_bill:/redis_bill/data
+    restart: always
+    ports:
+      - '6379:6379' 
+    networks:
+      - billing_nw
+
+  billing_db:
+    image: postgres:13-alpine
+    container_name: billing_db
+    env_file: 
+      - ./.env
+    environment:
+      - POSTGRES_DB=billing_db
+      - POSTGRES_HOST=billing_db
+    volumes:
+      - billing_db_data:/var/lib/postgresql/data/
+    restart: always
+    ports:
+      - '5432:5432'
+    networks:
+      - billing_nw
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+        - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+        - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    networks:
+        - rabbitmq
+
+  billingadmin:
+    build: ./billing_admin
+    container_name: billingadmin
+    volumes:
+      - static_volume:/app/static
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=billing_db
+      - DB_HOST=billing_db
+    depends_on:
+      - notif_db
+    command: bash -c "python script.py && gunicorn config.wsgi --bind 0.0.0.0:8202"
+    ports:
+      - '8202:8202'
+    restart: on-failure
+    networks:
+      - billing_nw
+
+  notif_db:
+    image: postgres:13-alpine
+    container_name: notif_db
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    volumes:
+      - notif_db_data:/var/lib/postgresql/data/
+    restart: always
+    # ports:
+    #   - "5432:5432"
+    networks:
+      - rabbitmq
+
+  rabbitworker:
+    build: 
+      context: ./workers
+      dockerfile: Dockerfile_rabbit
+    container_name: rabbitworker
+    env_file:
+      - ./.env
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    depends_on:
+      - rabbitmq
+      - notif_db
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  enrichworker:
+    build: 
+      context: ./workers
+      dockerfile: Dockerfile_enrich
+    container_name: enrichworker
+    env_file:
+      - ./.env
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+      - AUTH_URL=http://flask_auth:5000/auth/api/v1/get_user_by_id
+    depends_on:
+      - rabbitmq
+      - notif_db
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  senderworker:
+    build: 
+      context: ./workers
+      dockerfile: Dockerfile_sender
+    container_name: senderworker
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    depends_on:
+      - notif_db
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  notifadmin:
+    build: 
+      context: ./notif_admin_panel
+      dockerfile: Dockerfile
+    container_name: notifadmin
+    volumes:
+      - static_volume:/app/static
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=notif_db
+      - POSTGRES_HOST=notif_db
+    depends_on:
+      - notif_db
+    command: bash -c "python script.py && gunicorn admin_notif.wsgi --bind 0.0.0.0:8082"
+    ports:
+      - '8082:8082' 
+    networks:
+      - rabbitmq
+    restart: on-failure
+
+  auth_db:
+    image: postgres:13-alpine
+    container_name: auth_db
+    env_file: 
+      - ./.env
+    environment:
+      - POSTGRES_DB=auth_db
+      - POSTGRES_HOST=auth_db
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data/
+    restart: always
+    networks:
+      - rabbitmq
+
+  redis_auth:
+    image: redis:alpine
+    container_name: redis_auth
+    env_file: 
+      - ./.env
+    volumes:
+      - redis_data:/redis_auth/data
+    restart: always
+    networks:
+      - rabbitmq
+
+  flask_auth:
+    build: ./flask_auth
+    container_name: flask_auth
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/flask_auth
+      - RABBIT_HOST=rabbitmq
+      - POSTGRES_DB=auth_db
+      - POSTGRES_HOST=auth_db
+      - DB_DOCKER_HOST=auth_db
+    working_dir: /flask_auth
+    depends_on:
+      - redis_auth
+      - auth_db
+    ports:
+      - "5000:5000"
+    restart: always
+    networks:
+      - rabbitmq
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: always
+    logging:
+      driver: 'none'
+    ports:
+      - 1025:1025
+      - 8025:8025
+    networks:
+      - rabbitmq
+
+volumes:
+  redis_bill:
+  billing_db_data:
+  notif_db_data:
+  auth_db_data:
+  redis_data:
+  mo_data:
+  static_volume:
+
+networks:
+  billing_nw:
+    driver: bridge
+  rabbitmq:
+    driver: bridge

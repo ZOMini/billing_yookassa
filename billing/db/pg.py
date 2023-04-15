@@ -1,3 +1,5 @@
+import runpy
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -11,6 +13,11 @@ async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False
 
 
 async def init_db():
+    # init миграции можно сделать руками, а не как ниже.
+    # В папке billing:
+    # alembic revision -m "init" --autogenerate
+    # alembic upgrade head
+    # Собственно доп. миграции по аналогии.
     async with engine.begin() as conn:
         # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
