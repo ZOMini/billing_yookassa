@@ -26,7 +26,7 @@
   - alembic upgrade head
 
 # Полезности
-  - сертификат ssl для HTTPS, браузеры будут ругаться(серты самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing
+  - сертификат ssl для HTTPS, браузеры будут ругаться(серты самоподписанные) - игнорим. Файлы создаем в линуксе, кладем в папку ./billing, для prod еще их кладем в ./nginx/pem (это для nginx)
     - openssl req -x509 -nodes -days 3650 -newkey ec:<(openssl ecparam -name prime256v1) -keyout private_key.pem -out certificate.pem
     - gunicorn your-project.wsgi --keyfile private_key.pem --certfile certificate.pem
     - https://stackoverflow.com/questions/67110868/gunicorn-https-certificate-and-keys
