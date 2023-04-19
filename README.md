@@ -19,7 +19,7 @@
   - http://localhost/notif/admin - Админка notif
   - http://localhost:8025/ - Mailhog
   - http://127.0.0.1:15672/ - RabbitMQ
-
+ 
 # Миграции(init везде автоматом)
   - доп. миграции, если необходимо то, из папки billing:
   - alembic revision -m "migration2" --autogenerate
