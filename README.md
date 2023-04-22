@@ -4,7 +4,7 @@
   - https://github.com/ZOMini/graduate_work  - репозиторий
   - https://github.com/ZOMini/graduate_work/invitations - приглашение
   - группа 10 - Пирогов Виталий/Игорь Синякин(@ee2 @sinyakinmail - в пачке)
-
+ 
 # Запуск
   - docker-compose -f docker-compose-prod.yml up --build
   - docker-compose -f docker-compose-dev.yml up --build

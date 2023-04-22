@@ -24,7 +24,7 @@ async def get_buy_subscription(
     Скорее тестовая ручка, пока не понятно."""
     redis_id = str(uuid.uuid4())
     payment, status = await billing_service.yoo_payment_create(user_id, tarif_id, redis_id)
-    if status not in (VALID_HTTP_STATUS):
+    if status not in VALID_HTTP_STATUS:
         raise HTTPException(status, payment['code'])
     # так как пока не понятно в этом сервисе(callback) или это будет отделный воркер,
     # сохранять id необработанных платежей(+redis id как ключ) буду в редисе.
