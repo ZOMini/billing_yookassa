@@ -11,7 +11,7 @@
   - для запуска нужны сертификаты для HTTPS(см. полезности)
   - заполняем .env (см. .env.template)
   - тесты теперь автоматом в docker-compose(billing_test)
-
+ 
 # URL
   - http://localhost/auth/docs/v1/ - документация модуля Auth
   - https://localhost/yookassa/api/openapi - документация модуля Billing
