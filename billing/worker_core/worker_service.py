@@ -8,7 +8,7 @@ from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
-from core.bill_log import LOGGING_BILL_WORKER
+from core.bill_log import logging_bill_worker
 from core.config import settings
 from db.rabbitmq import rabbit_conn
 from models.models_pg import UserStatus
@@ -22,10 +22,10 @@ async def _worker_post_event(user_id: str, event: str) -> None:
         connection = rabbit_conn()
         channel = connection.channel()
         channel.basic_publish(settings.EXCHANGE, settings.ROUTING_KEY, json.dumps(body))
-        LOGGING_BILL_WORKER.info('INFO RABBIT worker_post_event() BILL - OK')
+        logging_bill_worker.info('INFO RABBIT worker_post_event() BILL - OK')
         connection.close()
     except Exception as e:
-        LOGGING_BILL_WORKER.error('ERROR RABBIT worker_post_event() BILL ERROR - %s', e)
+        logging_bill_worker.error('ERROR RABBIT worker_post_event() BILL ERROR - %s', e)
 
 
 async def post_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
@@ -40,9 +40,9 @@ async def post_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
             if result.status in VALID_HTTP_STATUS:
                 us.actual = True
                 await pg.commit()
-                LOGGING_BILL_WORKER.info('INFO post_subscriber() - post OK')
+                logging_bill_worker.info('INFO post_subscriber() - post OK')
             else:
-                LOGGING_BILL_WORKER.error('ERROR post_subscriber() - post %s -- %s -- %s', result.status, result.reason, {'role': 'subscriber', 'user': str(us.id)})
+                logging_bill_worker.error('ERROR post_subscriber() - post %s -- %s -- %s', result.status, result.reason, {'role': 'subscriber', 'user': str(us.id)})
 
 
 async def del_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
@@ -59,9 +59,9 @@ async def del_subscriber(pg: AsyncSession, ahttp: ClientSession) -> None:
                 us.expires_status = True
                 await pg.commit()
                 await _worker_post_event(str(us.id), 'subscription_expired')
-                LOGGING_BILL_WORKER.info('INFO main_worker() - delete OK')
+                logging_bill_worker.info('INFO main_worker() - delete OK')
             else:
-                LOGGING_BILL_WORKER.error('ERROR main_worker() - delete %s', result.status)
+                logging_bill_worker.error('ERROR main_worker() - delete %s', result.status)
 
 
 async def expires_subscriber(pg: AsyncSession) -> None:
@@ -73,4 +73,4 @@ async def expires_subscriber(pg: AsyncSession) -> None:
         us.expires_status = True
         await pg.commit()
         await _worker_post_event(str(us.id), 'subscription_expires')
-        LOGGING_BILL_WORKER.info('INFO expires_subscriber() - OK')
+        logging_bill_worker.info('INFO expires_subscriber() - OK')

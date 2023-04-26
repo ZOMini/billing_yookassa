@@ -33,5 +33,5 @@ LOGGING = {  # noqa: WPS407
 }
 
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FMT)
-LOGGING_BILL_WORKER = logging.getLogger('billing worker')
-LOGGING_BILL_API = logging.getLogger('billing api')
+logging_bill_worker = logging.getLogger('billing worker')
+logging_bill_api = logging.getLogger('billing api')
