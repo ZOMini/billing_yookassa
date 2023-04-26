@@ -54,7 +54,7 @@ class UserServ(User):
                     connection = rabbit_conn()
                     channel = connection.channel()
                     channel.basic_publish(SETT.EXCHANGE, SETT.ROUTING_KEY, json.dumps(body))
-                    logging.error('RABBIT AUTH - OK')
+                    logging.info('RABBIT AUTH - OK')
                     connection.close()
                 except Exception as e:
                     logging.error('RABBIT AUTH ERROR - %s', e)
@@ -83,7 +83,7 @@ class UserServ(User):
                         connection = rabbit_conn()
                         channel = connection.channel()
                         channel.basic_publish(SETT.EXCHANGE, SETT.ROUTING_KEY, json.dumps(body))
-                        logging.error('RABBIT AUTH UPD - OK')
+                        logging.info('RABBIT AUTH UPD - OK')
                         connection.close()
                     except Exception as e:
                         logging.error('RABBIT AUTH UPD ERROR - %s', e)
@@ -153,7 +153,6 @@ class UserServ(User):
             return jsonify(msg="Wrong role.id and user.id or see in err",
                            err=e.args), HTTP.BAD_REQUEST
 
-
     @classmethod
     def add_or_del_role_user_billing(cls, json: dict, add: bool = False) -> tuple[Response, HTTP]:
         '''Метод специально для биллинга. Метод добавляет или удаляет роль пользователя.
@@ -161,7 +160,7 @@ class UserServ(User):
         try:
             role = RoleServ.get_obj_by_role(json['role'])
             user = cls.get_obj_by_id(json['user'])
-            logging.error('DDDDDDDDDDDDDDDDDDD - %s -- %s', role.role, user.id)
+            logging.info('role / user - %s / %s', role.role, user.id)
             user_agents = db_session.query(Auth.user_agent).filter(Auth.user_id == str(user.id)).distinct().all()
             for user_agent in user_agents:
                 AuthServ.add_old_tokens_in_block(user, user_agent_hash(user_agent[0]))

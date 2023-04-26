@@ -10,6 +10,6 @@ def notif_send(username: str, email: str, user_id: str):
     resp = requests.post(
         f'{settings.notif_api_url}/notif/api/v1/create_user', json=param)
     if resp.status_code != 201 or resp.status_code != 200:
-        logging.error('ERROR - NOTIF - status %s', resp.status_code)
+        logging.error('ERROR - notif_send() - status %s', resp.status_code)
     else:
-        logging.error('INFO - NOTIF - status %s', resp.status_code)
+        logging.info('INFO - notif_send() - status %s', resp.status_code)

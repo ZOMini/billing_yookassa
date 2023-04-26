@@ -10,7 +10,7 @@ class RequestIdFilter(logging.Filter):
     def __init__(self, name: str | None = None, response: Response | None = None) -> None:
         self.name = name
         self.response: Response = response
-    
+
     def filter(self, record):
         record.request_id = request.headers.get('X-Request-Id')
         record.tags = ['auth_api']

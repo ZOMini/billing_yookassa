@@ -5,10 +5,12 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
 from api.v1 import yookassa
+from core.bill_log import logging
 from core.config import settings
 from db import redis
 from db.pg import async_session, init_db
 from models.models_pg import test_data
+
 
 app = FastAPI(
     title='Billing',
@@ -36,4 +38,4 @@ async def shutdown():
     async_session.close_all()
 
 if __name__ == '__main__':
-    uvicorn.run('main:app', host='0.0.0.0', port=443, limit_max_requests=128, workers=1, reload=True)
+    uvicorn.run('main:app', host='0.0.0.0', port=443, limit_max_requests=128, log_level=logging.INFO, workers=1, reload=True)

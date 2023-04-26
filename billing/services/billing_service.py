@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 import uuid
 from functools import lru_cache
 from http import HTTPStatus
@@ -12,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 
+from core.bill_log import LOGGING_BILL_API
 from core.config import settings
 from db.abstract import CacheStorage
 from db.aiohttp import get_aiohttp
@@ -36,8 +36,9 @@ class BillingService:
             channel = connection.channel()
             channel.basic_publish(settings.EXCHANGE, settings.ROUTING_KEY, json.dumps(body))
             connection.close()
+            LOGGING_BILL_API.info('RABBIT BILL OK')
         except Exception as e:
-            logging.error('ERROR RABBIT _post_event() BILL ERROR - %s', e)
+            LOGGING_BILL_API.error('RABBIT _post_event() BILL ERROR - %s', e)
 
     async def _refund_process(self, payment: PaymentPG):
         """Метод непосредственно производит возврат."""
