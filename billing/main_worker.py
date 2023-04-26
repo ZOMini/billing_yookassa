@@ -5,7 +5,7 @@ from http import HTTPStatus
 import aiohttp
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from core.bill_log import logging_bill_worker
+from core.bill_log import logging
 from core.config import settings
 from worker_core.worker_service import (
     del_subscriber,
@@ -14,6 +14,7 @@ from worker_core.worker_service import (
 )
 
 VALID_HTTP_STATUS = (HTTPStatus.CREATED, HTTPStatus.OK, HTTPStatus.ACCEPTED, HTTPStatus.NO_CONTENT)
+logger = logging.getLogger(__name__)
 
 
 async def main_worker():
@@ -36,4 +37,4 @@ while True:
     loop = asyncio.new_event_loop()
     loop.run_until_complete(main_worker())
     loop.close()
-    logging_bill_worker.info('main_worker() - loop OK')
+    logger.info('main_worker() - loop OK')

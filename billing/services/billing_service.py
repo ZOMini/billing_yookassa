@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 
-from core.bill_log import logging_bill_api
+from core.bill_log import logging
 from core.config import settings
 from db.abstract import CacheStorage
 from db.aiohttp import get_aiohttp
@@ -21,6 +21,8 @@ from db.redis import get_redis
 from models.models_pg import PaymentPG, StatusEnum, Tariff, UserStatus
 from services.aio_requests import AioRequests
 from services.response_msg import ResponseMsg
+
+logger = logging.getLogger(__name__)
 
 
 class BillingService:
@@ -36,9 +38,9 @@ class BillingService:
             channel = connection.channel()
             channel.basic_publish(settings.EXCHANGE, settings.ROUTING_KEY, json.dumps(body))
             connection.close()
-            logging_bill_api.info('RABBIT BILL OK')
+            logger.info('RABBIT BILL OK')
         except Exception as e:
-            logging_bill_api.error('RABBIT _post_event() BILL ERROR - %s', e)
+            logger.error('RABBIT _post_event() BILL ERROR - %s', e)
 
     async def _refund_process(self, payment: PaymentPG):
         """Метод непосредственно производит возврат."""
