@@ -17,7 +17,7 @@
   FastAPI, aiohttp, SQLAlchemy, Django, Pytest, gunicorn, nginx, alembic, aioredis, Postgres, RabbitMQ, Mailhog
 
 ## Архитектура
-  
+  https://github.com/ZOMini/billing_yookassa/blob/main/as_is.jpg
 
 ## Запуск
   - docker-compose -f docker-compose-prod.yml up --build
