@@ -1,9 +1,10 @@
-# Проектная работа: диплом - тема биллинг
+# Описание
+  - Дипломный проект по теме "Биллинг"
+  - Процессинг выбран yookassa
+  - Для полноценной работы совмещен с ранее написанными модулями [нотификации](https://github.com/ZOMini/notifications_sprint_1) и [авторизации](https://github.com/ZOMini/Auth_sprint_2)
+  - 
 
-# Для проверки:
-  - https://github.com/ZOMini/graduate_work  - репозиторий
-  - https://github.com/ZOMini/graduate_work/invitations - приглашение
-  - группа 10 - Пирогов Виталий/Игорь Синякин(@ee2 @sinyakinmail - в пачке)
+
  
 # Запуск
   - docker-compose -f docker-compose-prod.yml up --build
@@ -52,3 +53,8 @@
   - Примеры запросов billing(нужен актуальный user_id из модуля Auth):
     - https://localhost/yookassa/api/v1/buy_subscription?user_id=7d47c389-89ca-435f-8a78-f50734810fc8&tarif_id=ffe0d805-3595-4cc2-a892-f2bedbec4ac1
     - https://localhost/yookassa/api/v1/refunds_subscription/7d47c389-89ca-435f-8a78-f50734810fc8
+
+# Для проверки:
+  - https://github.com/ZOMini/graduate_work  - репозиторий
+  - https://github.com/ZOMini/graduate_work/invitations - приглашение
+  - группа 10 - Пирогов Виталий/Игорь Синякин(@ee2 @sinyakinmail - в пачке)
