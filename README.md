@@ -3,6 +3,7 @@
 ## Описание
   - Дипломный проект по теме "Биллинг".
   - Процессинг выбран yookassa.
+  - [Архитектура](https://github.com/ZOMini/billing_yookassa/blob/main/as_is.png)
   - Для полноценной работы совмещен с ранее написанными сервисами [нотификации](https://github.com/ZOMini/notifications_sprint_1) и [авторизации](https://github.com/ZOMini/Auth_sprint_2).
   - Сервис позволяет принимать оплату, делать возврат ранее внесенных денежных средств.
   - Воркер отслеживает статусы платежей и выдает через сервис авторизации роль подписчика.
@@ -15,9 +16,6 @@
 
 ## Стек
   FastAPI, aiohttp, SQLAlchemy, Django, Pytest, gunicorn, nginx, alembic, aioredis, Postgres, RabbitMQ, Mailhog
-
-## Архитектура
-  https://github.com/ZOMini/billing_yookassa/blob/main/as_is.png
 
 ## Запуск
   - docker-compose -f docker-compose-prod.yml up --build
