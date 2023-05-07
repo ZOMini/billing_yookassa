@@ -3,6 +3,7 @@ import json
 import uuid
 from functools import lru_cache
 from http import HTTPStatus
+from typing import Any, Tuple
 
 from aiohttp import BasicAuth, ClientSession
 from aioredis import Redis
@@ -79,7 +80,7 @@ class BillingService:
         await self.pg.commit()
         return payment
 
-    async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> dict:
+    async def yoo_payment_create(self, user_id: uuid.UUID | str, tarif_id: uuid.UUID | str, redis_id: uuid.UUID | str) -> tuple[Any, int]:
         tarif = await self._get_tariff_obj(str(tarif_id))
         async with self.aiohttp.post(
             'https://api.yookassa.ru/v3/payments',
@@ -89,7 +90,7 @@ class BillingService:
         ) as payment:
             return await payment.json(), payment.status
 
-    async def yoo_payment_get(self, yoo_id: uuid.UUID | str) -> tuple[dict, str]:
+    async def yoo_payment_get(self, yoo_id: uuid.UUID | str) -> tuple[dict, int]:
         async with self.aiohttp.get(
             f'https://api.yookassa.ru/v3/payments/{yoo_id}',
             auth=BasicAuth(settings.yoo_account_id, settings.yoo_secret_key),
@@ -102,7 +103,7 @@ class BillingService:
         а при создании платежа уже нужно передать return_url(в котором квари параметр какой либо id,
         для идентификации - кого/какой платеж, вернуло после платежа).
         Ну либо callback - но уже через редис решил, так гибче получается."""
-        result = await self.cache.set(redis_id, yoo_id, settings.redis_expire)
+        result = await self.cache.set(str(redis_id), str(yoo_id), settings.redis_expire)
         return result
 
     async def get_yoo_id(self, redis_id: uuid.UUID) -> str | None:
@@ -127,7 +128,7 @@ class BillingService:
         Если нет данных - создает. Если статус платежа succeeded продливает/возобновляет/активирует подписку.
         Ставит булевый флаг для воркера, что бы проверить подписку в Auth модуле.
         Возвращает обновленный объект UserStatus."""
-        u_obj = await self.pg.get(UserStatus, data['metadata']['user_id'])
+        u_obj: UserStatus = await self.pg.get(UserStatus, data['metadata']['user_id'])
         status = True if data['status'] == StatusEnum.succeeded.value else False
         if not u_obj:
             self.pg.add(UserStatus(id=data['metadata']['user_id']))

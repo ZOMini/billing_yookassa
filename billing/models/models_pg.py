@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Relationship
+from sqlalchemy.orm import Relationship, relationship
 from sqlalchemy.sql import func
 
 from db.pg import Base, engine
@@ -41,7 +41,7 @@ class UserStatus(Base):
     expires_at = Column(DateTime(timezone=False), default=None, nullable=True)
     actual = Column(Boolean, default=False)  # Если True, то подписка выдана. "Флаг" для воркера.
     expires_status = Column(Boolean, default=False)  # Если True, то воркер отправил сообщение о скором окончании подписки.
-    payments = Relationship("PaymentPG", back_populates="userstatus")
+    payments = relationship("PaymentPG", back_populates="userstatus")
 
     def __repr__(self) -> str:
         return str(self.id)
@@ -52,10 +52,10 @@ class Tariff(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, unique=True, nullable=False)
-    days = Column(Interval(), nullable=False)
+    days = Column(Interval, nullable=False)
     price = Column(Float, nullable=False)
     description = Column(String(127), nullable=False)
-    payments = Relationship("PaymentPG", back_populates="tariff")
+    payments = relationship("PaymentPG", back_populates="tariff")
 
     def __repr__(self) -> str:
         return str(self.id)
@@ -71,9 +71,9 @@ class PaymentPG(Base):
     income = Column(Float, nullable=False)
     status = Column(Enum(StatusEnum), nullable=False)
     tariff_id = Column(UUID(as_uuid=True), ForeignKey("tariff.id"))
-    tariff = Relationship("Tariff", back_populates="payments")
+    tariff = relationship("Tariff", back_populates="payments")
     userstatus_id = Column(UUID(as_uuid=True), ForeignKey("userstatus.id"))
-    userstatus = Relationship("UserStatus", back_populates="payments")
+    userstatus = relationship("UserStatus", back_populates="payments")
 
     def __repr__(self) -> str:
         return str(self.id)

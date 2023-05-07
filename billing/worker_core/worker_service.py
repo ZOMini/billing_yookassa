@@ -1,12 +1,11 @@
 import datetime
 import json
-import logging
 from http import HTTPStatus
 
 from aiohttp import ClientSession
 from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func, select
+from sqlalchemy.sql import select
 
 from core.bill_log import logging
 from core.config import settings
