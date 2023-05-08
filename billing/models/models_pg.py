@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Relationship, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from db.pg import Base, engine
